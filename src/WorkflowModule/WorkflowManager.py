@@ -1,0 +1,230 @@
+import os
+import json
+from pathlib import Path
+import shutil
+import tempfile
+from pydantic import BaseModel
+import zipfile
+
+BASE_WORKFLOWS_STORAGE = Path.home() / "BioImageIT_Workflows"
+# file that will store the paths of managed workflows
+REGISTRY_FILE_NAME = ".workflow_registry.json"
+REGISTRY_FILE_PATH = BASE_WORKFLOWS_STORAGE / REGISTRY_FILE_NAME
+
+DEFAULT_WORKFLOW_CONTENT = {
+    "nodes": [], "edges": [], "viewport": {"x": 0, "y": 0, "zoom": 1}
+}
+
+class RenameRequest(BaseModel):
+    old_full_path: str
+    new_name: str
+
+class DuplicateRequest(BaseModel):
+    source_path: str 
+    target_parent_path: str
+    target_name: str
+
+class CreateWorkflowRequest(BaseModel):
+    name: str      
+    path: str  
+
+class WorkflowManager:
+    def __init__(self):
+        BASE_WORKFLOWS_STORAGE.mkdir(parents=True, exist_ok=True)
+        self._workflow_paths_registry = self._load_registry() 
+    
+    def _load_registry(self) -> set[str]:
+        if REGISTRY_FILE_PATH.exists():
+            try:
+                with REGISTRY_FILE_PATH.open("r") as f:
+                    paths = json.load(f)
+                    # Ensure these are strings and normalize them to resolved absolute paths
+                    return set(str(Path(p).resolve()) for p in paths if isinstance(p, str))
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"Warning: The workflow registry file {REGISTRY_FILE_PATH} is corrupted or badly formatted. It will be reset. Error: {e}")
+                return set()
+        return set() # Returns an empty set if the file doesn't exist
+
+    def _save_registry(self):
+        try:
+            with REGISTRY_FILE_PATH.open("w") as f:
+                json.dump(list(self._workflow_paths_registry), f, indent=2)
+        except IOError as e:
+            print(f"Critical error: Unable to write to workflow registry file {REGISTRY_FILE_PATH}. Error: {e}")
+
+
+    def getWorkflows(self) -> list[str]:
+        """
+        Returns a list of absolute paths of registered and valid workflows.
+        Cleans the registry of invalid paths.
+        """
+        current_registry = list(self._workflow_paths_registry) # Work on a copy for modification
+        valid_paths_to_return = []
+        registry_updated = False
+
+        for path_str in current_registry:
+            workflow_path = Path(path_str)
+            # A valid workflow exists, is a directory, and contains graph.json (for example)
+            if workflow_path.exists() and workflow_path.is_dir() and (workflow_path / "graph.json").exists():
+                valid_paths_to_return.append(str(workflow_path))
+            else:
+                # This path is no longer valid, remove it from the main registry
+                if path_str in self._workflow_paths_registry:
+                    self._workflow_paths_registry.remove(path_str)
+                print(f"Information: Invalid or deleted workflow path removed from registry: {path_str}")
+                registry_updated = True
+        
+        if registry_updated:
+            self._save_registry() 
+
+        return sorted(valid_paths_to_return)
+
+
+    def createWorkflow(self, name: str, parent_directory_path_str: str):
+        """
+        Creates a new workflow (folder) in the specified parent_directory_path_str.
+        """
+        try:
+            parent_path = Path(parent_directory_path_str).resolve()
+            if not parent_path.is_dir():
+                return {"error": f"The specified parent path '{parent_directory_path_str}' is not a valid file or does not exist."}, 400
+            # if not str(parent_path).startswith(str(Path.home())):
+            #     return {"error": "The specified creation path is not allowed."}, 403
+
+            # Full path to new workflow
+            workflow_path = parent_path / name
+
+            if workflow_path.exists():
+                return {"error": f"A workflow named '{name}' already exists in '{parent_path}'."}, 409
+
+            # Creating the workflow folder structure
+            workflow_path.mkdir(parents=True)
+            (workflow_path / "Thumbnails").mkdir(parents=True, exist_ok=True)
+            (workflow_path / "Thumbnails" / ".keep").touch()
+            (workflow_path / ".gitignore").write_text("Metadata/*/*data_frame.csv\nData/\nThumbnails/\n.DS_Store\n")
+            with open(workflow_path / "graph.json", "w") as f:
+                json.dump(DEFAULT_WORKFLOW_CONTENT, f, indent=2)
+            
+            # Add to registry
+            self._workflow_paths_registry.add(str(workflow_path.resolve()))
+            self._save_registry()
+            
+            return {"message": "Workflow successfully created.", "path": str(workflow_path)}, 201 # Created
+
+        except ValueError as ve: 
+            return {"error": f"The parent path provided is invalid: {ve}"}, 400
+        except Exception as e:
+            print(f"Server error during workflow creation: {e}")
+            return {"error": f"An internal error occurred during workflow creation."}, 500
+
+
+
+    def deleteWorkflow(self, workflow_full_path_str: str):
+        workflow_path = Path(workflow_full_path_str).resolve()
+
+        if not workflow_path.exists():
+            return {"error": "Workflow not found"}, 404
+        try:
+            shutil.rmtree(workflow_path)
+            # Remove from registry (convert to str for comparison with set elements)
+            path_to_remove_str = str(workflow_path)
+            if path_to_remove_str in self._workflow_paths_registry:
+                self._workflow_paths_registry.remove(path_to_remove_str)
+                self._save_registry()
+            return {"message": "Workflow deleted", "name": workflow_full_path_str}, 200
+        except Exception as e:
+            return {"error": f"Failed to delete workflow: {str(e)}"}, 500
+
+    def duplicateWorkflow(self, source_full_path_str: str, target_parent_path_str: str, target_name: str):
+        source_path = Path(source_full_path_str).resolve()
+        target_parent_path = Path(target_parent_path_str).resolve()
+        target_path = target_parent_path / target_name
+
+        # Validations
+        # if not str(source_path).startswith(str(Path.home())) or \
+        #    not str(target_parent_path).startswith(str(Path.home())): # Security check
+        #      return {"error": "Duplication path not authorized."}, 403
+        if not source_path.is_dir():
+            return {"error": "Source workflow not found."}, 404
+        if not target_parent_path.is_dir():
+            return {"error": "Invalid target parent path for duplication."}, 400
+        if target_path.exists():
+            return {"error": "A workflow with the same name already exists at the destination."}, 409
+
+        try:
+            shutil.copytree(source_path, target_path)
+            # Add the new duplicated workflow to the registry
+            self._workflow_paths_registry.add(str(target_path.resolve()))
+            self._save_registry()
+            return {"message": "Workflow duplicated", "path": str(target_path)}, 201
+        except Exception as e:
+            return {"error": f"Duplication failed: {e}"}, 500
+
+    def renameWorkflow(self, old_full_path_str: str, new_name: str):
+        old_path = Path(old_full_path_str).resolve()
+        # The new path will be in the same parent as the old one, with the new name
+        new_path = old_path.parent / new_name
+
+        # Validations (security, existence)
+        # if not str(old_path).startswith(str(Path.home())): # Security check
+        #      return {"error": "Rename path not authorized."}, 403
+        if not old_path.is_dir():
+            return {"error": f"Source workflow '{old_full_path_str}' not found."}, 404
+        if new_path.exists():
+            return {"error": f"A workflow named '{new_name}' already exists at this location."}, 409
+        
+        try:
+            old_path.rename(new_path)
+            # Update the registry
+            if str(old_path) in self._workflow_paths_registry:
+                self._workflow_paths_registry.remove(str(old_path))
+                self._workflow_paths_registry.add(str(new_path))
+                self._save_registry()
+            return {"message": "Workflow renamed", "old_path": str(old_path), "new_path": str(new_path)}, 200
+        except Exception as e:
+            return {"error": f"Rename failed: {e}"}, 500
+        
+    def exportWorkflow(self, workflow_full_path_str: str) -> Path | dict:
+        """
+        Exports the specified workflow directory as a zip file.
+        Args: workflow_full_path_str: The absolute path to the workflow directory.
+        Returns:
+            A Path object to the temporary zip file if successful,
+            or a dictionary with an "error" key if an error occurred.
+        """
+        try:
+            workflow_dir = Path(workflow_full_path_str).resolve()
+
+            # Security check (example: ensure it's within a permitted base directory)
+            # Replace Path.home() / "BioImageIT_Workflows" with your actual base/allowed directory
+            # This is a simplified check; adapt to your security requirements.
+            # permitted_base = Path.home() / "BioImageIT_Workflows" # Or another configured base
+            # if not str(workflow_dir).startswith(str(permitted_base)) and not str(workflow_dir) == str(permitted_base):
+            #    if not workflow_dir.is_relative_to(permitted_base): # Python 3.9+
+            #        return {"error": "Export path is not within the allowed directory."}
+
+
+            if not workflow_dir.is_dir(): # is_dir() also implies exists()
+                return {"error": f"Workflow directory not found at: {workflow_full_path_str}"}
+
+            # Create a temporary file for the zip archive.
+            # delete=False is important because we return the path and delete it in the route handler.
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", prefix=f"{workflow_dir.name}_") as tmp_zip_file:
+                temp_zip_file_path = Path(tmp_zip_file.name)
+
+            # Create the zip archive
+            with zipfile.ZipFile(temp_zip_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in workflow_dir.rglob("*"):
+                    if file_path.is_file(): 
+                        # so the contents of workflow_dir are at the root of the zip.
+                        arcname = file_path.relative_to(workflow_dir)
+                        zipf.write(file_path, arcname)
+            
+            print(f"Workflow exported to temporary file: {temp_zip_file_path}")
+            return temp_zip_file_path 
+        except FileNotFoundError:
+            return {"error": f"Workflow directory not found at: {workflow_full_path_str}"}
+        except Exception as e:
+            # Log the full error for server-side debugging
+            print(f"Error during workflow export for '{workflow_full_path_str}': {e}")
+            return {"error": f"An unexpected error occurred during export: {str(e)}"}
