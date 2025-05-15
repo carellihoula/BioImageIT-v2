@@ -194,16 +194,6 @@ class WorkflowManager:
         """
         try:
             workflow_dir = Path(workflow_full_path_str).resolve()
-
-            # Security check (example: ensure it's within a permitted base directory)
-            # Replace Path.home() / "BioImageIT_Workflows" with your actual base/allowed directory
-            # This is a simplified check; adapt to your security requirements.
-            # permitted_base = Path.home() / "BioImageIT_Workflows" # Or another configured base
-            # if not str(workflow_dir).startswith(str(permitted_base)) and not str(workflow_dir) == str(permitted_base):
-            #    if not workflow_dir.is_relative_to(permitted_base): # Python 3.9+
-            #        return {"error": "Export path is not within the allowed directory."}
-
-
             if not workflow_dir.is_dir(): # is_dir() also implies exists()
                 return {"error": f"Workflow directory not found at: {workflow_full_path_str}"}
 
