@@ -1,4 +1,5 @@
 # BIOIMAGEIT/api.py
+import json
 import os
 import webview
 import base64 
@@ -123,5 +124,39 @@ class Api:
         return self.saveFileDialog(suggested_filename, base64_content)
 
 
+    def openWorkflowFromSelectedFolder(self):
+        active_window = webview.active_window()
+        if not active_window:
+            return {"error": "No active window."}
 
+        try:
+            folder_path_tuple = active_window.create_file_dialog(webview.FOLDER_DIALOG)
+            if not folder_path_tuple or not folder_path_tuple[0]:
+                return {"error": "File selection cancelled."}
+            selected_folder_path_str = folder_path_tuple[0]
+            graph_json_path_str = str(Path(selected_folder_path_str) / "graph.json")
 
+            return self.workflow_manager.openWorkflowFromGraph(graph_json_path_str)
+
+        except Exception as e:
+            return {"error": f"Erreur interne du serveur : {str(e)}"}
+        
+    def saveWorkflow(self, path: str, graph: dict):
+        try:
+            file_path = os.path.join(path, "graph.json")
+            if not os.path.isdir(path):
+                return { "success": False, "error": f"Directory does not exist: {path}" }
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(graph, f, ensure_ascii=False, indent=2)
+            return { "success": True, "message": f"Graph saved to {file_path}" }
+        except Exception as e:
+            return { "success": False, "error": str(e) }
+        
+    def loadWorkflow(self, path: str):
+        try:
+            file_path = os.path.join(path, "graph.json")
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return { "success": True, "data": data }
+        except Exception as e:
+            return { "success": False, "error": str(e) }
