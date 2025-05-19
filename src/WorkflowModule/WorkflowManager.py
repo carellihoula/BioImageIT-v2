@@ -218,3 +218,49 @@ class WorkflowManager:
             # Log the full error for server-side debugging
             print(f"Error during workflow export for '{workflow_full_path_str}': {e}")
             return {"error": f"An unexpected error occurred during export: {str(e)}"}
+        
+    def openWorkflowFromGraph(self, graph_json_path_str: str) -> dict:
+        """
+        Opens a workflow from a graph.json file path.
+        Validates the parent folder as a workflow, registers it if new,
+        and returns the graph data.
+        This function combines validation, registration and reading logic.
+        """
+        registration_status = "unknown"
+        try:
+            graph_json_path = Path(graph_json_path_str).resolve(strict=True) # strict=True for FileNotFoundError
+            
+            if not graph_json_path.is_file() or graph_json_path.name != "graph.json":
+                return {"error": f"The path '{graph_json_path_str}' does not point to a valid graph.json file."}
+
+            workflow_path = graph_json_path.parent # The workflow folder is the parent of graph.json
+            workflow_path_str = str(workflow_path) # Resolved absolute path
+
+            if workflow_path_str not in self._workflow_paths_registry: # if not included in registry paths, add it
+                self._workflow_paths_registry.add(workflow_path_str)
+                self._save_registry()
+                registration_status = "registered"
+                print(f"DEBUG: Workflow '{workflow_path_str}' registered.")
+            else:
+                registration_status = "already_exists"
+                print(f"DEBUG: Workflow '{workflow_path_str}' already in registry.")
+           
+            # graph reading logic
+            try:
+                with graph_json_path.open("r") as f:
+                    graph_data = json.load(f)
+            except json.JSONDecodeError:
+                return {"error": f"JSON decoding error for graph.json in: {workflow_path_str}"}
+
+            return {
+                "success": True,
+                "path": workflow_path_str,
+                "graph_data": graph_data,
+                "registration_status": registration_status
+            }
+        except FileNotFoundError:
+            return {"error": f"Specified graph.json file not found: {graph_json_path_str}"}
+        except Exception as e: # Catches other errors (e.g., Path() on invalid path)
+            print(f"Error in openWorkflowFromGraph for {graph_json_path_str}: {e}")
+            return {"error": f"Internal server error while opening workflow: {str(e)}"}
+
