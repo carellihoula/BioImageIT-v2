@@ -4,9 +4,9 @@ import os
 import webview
 import base64 
 from pathlib import Path
-
+from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
-    
+   
 
 
 class Api:
@@ -15,6 +15,11 @@ class Api:
     """
     def __init__(self):
         self.workflow_manager = WorkflowManager()
+        self.codeserver = CodeServerTool()
+
+    def launchCodeServer(self):
+        self.codeserver.init_and_launch_code_server()
+        return {'status': 'starting' if not self.codeserver.environment_ready else 'already_started'}
 
     def selectFolderDialog(self):
         """

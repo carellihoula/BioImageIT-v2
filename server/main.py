@@ -3,15 +3,17 @@
 from quart import Quart, jsonify
 from .routes.workflowRoutes import workflow_bp
 from .routes.toolRoutes import tool_bp
+from server.sockets import sockets_bp
 from quart_cors import cors
 
     
 app = Quart(__name__, static_folder=None)
 app.config['PROVIDE_AUTOMATIC_OPTIONS'] = True
-app = cors(app, allow_origin=["http://localhost:5173"])
+app = cors(app, allow_origin=["http://localhost:5173", "http://127.0.0.1:3000"])
 
 app.register_blueprint(workflow_bp)
 app.register_blueprint(tool_bp)
+app.register_blueprint(sockets_bp) 
 
 @app.route('/health') 
 async def health():

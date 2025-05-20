@@ -45,3 +45,4 @@ cover/
 # pixi environments
 .pixi
 *.egg-info
+micromamba/
