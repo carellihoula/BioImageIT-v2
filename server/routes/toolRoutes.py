@@ -1,15 +1,15 @@
 import os
-from src.Packages.FunctionLibraries.BiitLib import load_tools_info, toolsPath
-from quart import Blueprint, jsonify, request
-
 from pathlib import Path
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from src.Packages.FunctionLibraries.BiitLib import load_tools_info, toolsPath
 
-tool_bp = Blueprint('tools', __name__, url_prefix='/api/tools')
+tool_router = APIRouter(prefix="/api/tools", tags=["tools"])
 
-
-
-
-@tool_bp.get("/")
+@tool_router.get("/")
 async def getTools():
+    """
+    endpoint to retrieve all tools
+    """
     tools_info = load_tools_info(toolsPath)
-    return  jsonify(tools_info), 200
+    return JSONResponse(content=tools_info, status_code=200)
