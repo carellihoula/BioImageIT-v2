@@ -1,26 +1,70 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from server.routes.toolRoutes import tool_router
+from server.routes.workflowRoutes import workflow_router
+from server.sockets import websocket_endpoint
+
+# "http://localhost:5174",
+# "http://localhost:5173",
+# "http://localhost:3000",
+
+app = FastAPI()
+test_origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=test_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(tool_router)
+app.include_router(workflow_router)
+@app.websocket("/ws")(websocket_endpoint)
 
 
-from quart import Quart, jsonify
-from .routes.workflowRoutes import workflow_bp
-from .routes.toolRoutes import tool_bp
-from server.sockets import sockets_bp
-from quart_cors import cors
+# # Current directory of the server.py file
+# current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    
-app = Quart(__name__, static_folder=None)
-app.config['PROVIDE_AUTOMATIC_OPTIONS'] = True
-app = cors(app, allow_origin=["http://localhost:5173", "http://127.0.0.1:3000"])
+# # Directory containing the static files ==> /images and table tool reactjs app (/table_with_react)
+# static_dir = os.path.join(current_dir, "static")
 
-app.register_blueprint(workflow_bp)
-app.register_blueprint(tool_bp)
-app.register_blueprint(sockets_bp) 
+# # Mount the static files directory and set follow_symlinks to True to authorize access to the images directory
+# static_images_path = os.path.join(static_dir, "images")
+# app.mount("/images", StaticFiles(directory=static_images_path, follow_symlink=True), name="images")
 
-@app.route('/health') 
-async def health():
-    print("--- server/main.py: Route '/health' called ---")
-    return jsonify({"status": "ok", "message": "Quart Server (fix attempt) is online!"})
+# # Mount the Table Tool ReactJS  App
+# table_tool_reactjs_build_dir = os.path.join(static_dir, "table_with_react")
+# app.mount("/react", StaticFiles(directory=table_tool_reactjs_build_dir), name="react")
 
-print("--- server/main.py: END of module definition ---")
+# # ------------------------------------------------------------------
+# # catch-all Route for  Table Tool ReactJS 
+# # ------------------------------------------------------------------
+# @app.get("/react", response_class=HTMLResponse)
+# async def serve_react_app():
+#     """catch-all Route for  Table Tool ReactJS """
+#     index_path = os.path.join(table_tool_reactjs_build_dir, "index.html")
+#     try:
+#         with open(index_path, "r", encoding="utf-8") as f:
+#             html_content = f.read()
+#     except Exception as e:
+#         return HTMLResponse(content=f"Error while reading index.html file : {e}", status_code=500)
+#     return HTMLResponse(content=html_content, status_code=200)
 
-# The if __name__ == '__main__' block for direct testing is not crucial here,
-# as the main test will be done via app_launcher.py
+
+@app.get("/")
+def read_root():
+    # HTTP Endpoint to check that FastAPI is working properly.
+    return {"message": "FastAPI WebSocket is running!"}
+
+
+
+
+
+
+
+
+
+
+
+
+

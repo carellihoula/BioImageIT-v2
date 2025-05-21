@@ -46,3 +46,5 @@ cover/
 .pixi
 *.egg-info
 micromamba/
+*.log
+*.ini
