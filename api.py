@@ -1,4 +1,3 @@
-# BIOIMAGEIT/api.py
 import json
 import os
 import webview
@@ -8,10 +7,10 @@ from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
    
 
-
 class Api:
     """
-    API class whose methods can be called from JavaScript.
+    This module provides an API interface for the application, handling file operations,
+    code server management, and workflow management through Python-JavaScript bridge.
     """
     def __init__(self):
         self.workflow_manager = WorkflowManager()
@@ -20,6 +19,9 @@ class Api:
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
         return {'status': 'starting' if not self.codeserver.environment_ready else 'already_started'}
+    
+    def getStatus(self):
+        return self.codeserver.get_status()
 
     def selectFolderDialog(self):
         """

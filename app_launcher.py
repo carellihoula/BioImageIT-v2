@@ -4,8 +4,8 @@ import threading
 import uvicorn
 import time
 from api import Api
-from server.main import app as quart_app
-
+from server.main import app as fastapi_app
+# from src.Packages.Tools.CodeServerTool import CodeServerTool
 
 
 SERVER_HOST = "127.0.0.1"
@@ -15,23 +15,22 @@ APP_URL = "http://localhost:5173"  # For testing on localhost
 
 instance_api = Api()
 
-def runQuartServer():
-    print(f"Starting Quart server on {APP_URL}")
+def runFastAPIServer():
+    print(f"Starting FastAPI server on {APP_URL}")
     try:
         uvicorn.run(
-            quart_app,
+            fastapi_app,
             host=SERVER_HOST,
             port=SERVER_PORT,
             log_level="info"
         )
     except Exception as e:
-        print(f"Error while starting or running Quart server: {e}")
+        print(f"Error while starting or running FastAPI server: {e}")
 
 if __name__ == '__main__':
     print("Launching BioImageIT application (minimal version)...")
-    server_thread = threading.Thread(target=runQuartServer, daemon=True)
+    server_thread = threading.Thread(target=runFastAPIServer, daemon=True)
     server_thread.start()
-
     print(f"Waiting for server to start ({time.sleep(3) or 3} seconds)...")
 
     print(f"Launching Pywebview window pointing to {APP_URL}")
