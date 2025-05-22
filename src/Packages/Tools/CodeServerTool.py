@@ -2,7 +2,7 @@ import threading
 import time
 
 import requests
-from src.ToolManagement.EnvironmentManager2 import environmentManager
+from src.ToolManagement.EnvironmentManager import environmentManager
 
 class CodeServerTool:
     _instance = None
