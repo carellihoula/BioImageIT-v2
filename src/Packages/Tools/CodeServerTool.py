@@ -2,7 +2,7 @@ import threading
 import time
 
 import requests
-from src.ToolManagement.EnvironmentManager import environmentManager
+from src.ToolManagement.EnvironmentManager2 import environmentManager
 
 class CodeServerTool:
     _instance = None
@@ -21,7 +21,7 @@ class CodeServerTool:
         self._launch_lock = threading.Lock()
         self.status = "starting"
 
-    def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=30):
+    def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
         start = time.time()
         while time.time() - start < timeout:
             try:
@@ -55,20 +55,20 @@ class CodeServerTool:
         
         
 
-        if not environmentManager.environmentExists("codeserver-env"):
+        if not environmentManager.exists("codeserver-env2"):
                 self.status = "starting"
                 environmentManager.create(
-                    environment="codeserver-env",
-                    dependencies=dependencies,
+                   "codeserver-env2",
+                    dependencies,
                 )
 
         CodeServerTool.environment = environmentManager.launch(
-                environment="codeserver-env",
-                customCommand=(
+                "codeserver-env2",
+               
                     f'code-server --install-extension launchfileauto-latest.vsix && '
                     f'code-server --auth none --bind-addr 127.0.0.1:3000'
-                ),
-                condaEnvironment=True
+                
+                #condaEnvironment=True
             )
         if self.wait_for_http_ready():
             self.environment_ready = True
