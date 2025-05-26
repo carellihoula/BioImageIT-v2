@@ -19,7 +19,7 @@ class CodeServerTool:
     def _init_instance(self):
         self.environment_ready = False
         self._launch_lock = threading.Lock()
-        self.status = "starting"
+        self.status = "idle"
 
     def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
         start = time.time()
@@ -40,8 +40,10 @@ class CodeServerTool:
         # if self.status != "idle":
         #     return
         with self._launch_lock:
-            if not self.environment_ready:
-                threading.Thread(target=self.setup_code_server, daemon=True).start()
+            if self.environment_ready or self.status == "starting":
+                return  
+            self.status = "starting"
+            threading.Thread(target=self.setup_code_server, daemon=True).start()
 
     def setup_code_server(self):
         
@@ -56,7 +58,7 @@ class CodeServerTool:
         
 
         if not environmentManager.exists("codeserver-env2"):
-                self.status = "starting"
+                # self.status = "starting"
                 environmentManager.create(
                    "codeserver-env2",
                     dependencies,

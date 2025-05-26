@@ -6,6 +6,7 @@ import platform
 import datetime
 import tarfile
 import urllib.request
+import ssl
 import stat
 
 class EnvironmentManager:
@@ -46,7 +47,8 @@ class EnvironmentManager:
 
             self.base_dir.mkdir(parents=True, exist_ok=True)
             archive_path = self.base_dir / "micromamba.tar.bz2"
-
+            
+            ssl._create_default_https_context = ssl._create_unverified_context
             urllib.request.urlretrieve(url, archive_path)
 
             # Extract micromamba/bin/micromamba binary

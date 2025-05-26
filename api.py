@@ -16,6 +16,12 @@ class Api:
         self.workflow_manager = WorkflowManager()
         self.codeserver = CodeServerTool()
 
+    def getHomePath(self):
+        """
+        Returns the home directory path of the current user.
+        """
+        return str(Path.home())
+
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
         return {'status': 'starting' if not self.codeserver.environment_ready else 'already_started'}
