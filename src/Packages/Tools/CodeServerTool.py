@@ -1,8 +1,14 @@
 import threading
 import time
-
 import requests
-from src.ToolManagement.EnvironmentManager import environmentManager
+# from src.ToolManagement.EnvironmentManager import environmentManager
+
+from wetlands.environment_manager import EnvironmentManager
+from wetlands.external_environment import ExternalEnvironment
+
+
+# Initialize the environment manager
+# environmentManager = EnvironmentManager("micromamba/", False)
 
 class CodeServerTool:
     _instance = None
@@ -20,6 +26,9 @@ class CodeServerTool:
         self.environment_ready = False
         self._launch_lock = threading.Lock()
         self.status = "idle"
+        self.environment = None
+        self.process = None
+        self.environmentManager = EnvironmentManager("micromamba/", False)
 
     def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
         start = time.time()
@@ -42,43 +51,77 @@ class CodeServerTool:
         with self._launch_lock:
             if self.environment_ready or self.status == "starting":
                 return  
-            self.status = "starting"
+            # self.status = "starting"
             threading.Thread(target=self.setup_code_server, daemon=True).start()
 
     def setup_code_server(self):
-        
-       
         """Handle the installation and launching of code-server."""
-        dependencies = {
-            'python': '3.10',
-            'conda': ['code-server'],
-            'pip': []
-        }
-        
-        
+        try:
+            self.status = "starting"
+            dependencies = {
+                'python': '3.10',
+                'conda': ['code-server'],
+                'pip': []
+            }
 
-        if not environmentManager.exists("codeserver-env2"):
-                # self.status = "starting"
-                environmentManager.create(
-                   "codeserver-env2",
-                    dependencies,
-                )
+            env_name = "codeserver12"
+            # Check if environment already exists
+            if not self.environmentManager.environmentExists("codeserver12"):
+                print("Creating new code-server environment...")
 
-        CodeServerTool.environment = environmentManager.launch(
-                "codeserver-env2",
-               
-                    f'code-server --install-extension launchfileauto-latest.vsix && '
-                    f'code-server --auth none --bind-addr 127.0.0.1:3000'
-                
-                #condaEnvironment=True
+            self.environment = ExternalEnvironment(env_name, self.environmentManager)
+            self.environmentManager.create(
+                environment="codeserver12",
+                dependencies=dependencies,
+                forceExternal=True,
             )
-        if self.wait_for_http_ready():
-            self.environment_ready = True
-            self.status = "ready"
-        else:
-            self.status = "error: timeout waiting for port"
-        # self.environment_ready = True
-        # self.status = "ready"
+            print(f"Created environment of type: {type(self.environment)}")
+            commands = [
+                f"micromamba activate {env_name}",
+                "code-server --install-extension /home/carellihoula/bioimageit-v2/launchfileauto-latest.vsix",
+                # launch code-server
+                "code-server --auth none --bind-addr 127.0.0.1:3000"
+            ]
 
-        # except Exception as e:
-        #     self.status = f"error: {str(e)}"
+            if not isinstance(self.environment, ExternalEnvironment):
+                raise TypeError(f"Expected ExternalEnvironment but got {type(self.environment)}")
+
+            # self.environment.launch()
+            self.process = self.environment.launch(commands, logOutputInThread=True)
+
+            if self.wait_for_http_ready():
+                self.environment_ready = True
+                self.status = "ready"
+            else:
+                self.status = "error: timeout waiting for port"
+            # self.environment_ready = True
+            # self.status = "ready"
+
+        except Exception as e:
+            self.status = f"error: {str(e)}"
+            print(f"Error setting up code-server: {e}")
+
+
+    def stop_code_server(self):
+        """Stop the code-server and clean up resources."""
+        try:
+            if not self.process and not self.environment:
+                # print("No process and no environment.")
+                return
+            if self.environment:
+                self.environment._exit()
+            # self.environment._exit()  
+            self.environment_ready = False
+            self.status = "stopped"
+            print("Code server stopped successfully.")
+            
+        except Exception as e:
+            # print(f"Error stopping code-server: {e}")
+            # self.status = f"error stopping: {str(e)}"
+            pass
+            
+    # def is_running(self):
+    #     """Check if code-server is still running."""
+    #     if not self.process:
+    #         return False
+    #     return self.process.poll() is None
