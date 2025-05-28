@@ -49,7 +49,7 @@ class CodeServerTool:
         # if self.status != "idle":
         #     return
         with self._launch_lock:
-            if self.environment_ready or self.status == "starting":
+            if self.environment_ready or self.status == "ready":
                 return  
             # self.status = "starting"
             threading.Thread(target=self.setup_code_server, daemon=True).start()
@@ -66,18 +66,17 @@ class CodeServerTool:
 
             env_name = "codeserver12"
             # Check if environment already exists
-            if not self.environmentManager.environmentExists("codeserver12"):
+            if not self.environmentManager.environmentExists(env_name):
                 print("Creating new code-server environment...")
 
             self.environment = ExternalEnvironment(env_name, self.environmentManager)
             self.environmentManager.create(
-                environment="codeserver12",
+                environment=env_name,
                 dependencies=dependencies,
                 forceExternal=True,
             )
             print(f"Created environment of type: {type(self.environment)}")
             commands = [
-                f"micromamba activate {env_name}",
                 "code-server --install-extension launchfileauto-latest.vsix",
                 # launch code-server
                 "code-server --auth none --bind-addr 127.0.0.1:3000"
@@ -96,6 +95,7 @@ class CodeServerTool:
                 self.status = "error: timeout waiting for port"
             # self.environment_ready = True
             # self.status = "ready"
+            print(f"Code server setup complete with status: {self.status}")
 
         except Exception as e:
             self.status = f"error: {str(e)}"
