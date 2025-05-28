@@ -78,7 +78,7 @@ class CodeServerTool:
             print(f"Created environment of type: {type(self.environment)}")
             commands = [
                 f"micromamba activate {env_name}",
-                "code-server --install-extension /home/carellihoula/bioimageit-v2/launchfileauto-latest.vsix",
+                "code-server --install-extension launchfileauto-latest.vsix",
                 # launch code-server
                 "code-server --auth none --bind-addr 127.0.0.1:3000"
             ]
