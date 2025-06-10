@@ -31,6 +31,7 @@ class CodeServerTool:
         self.environmentManager = EnvironmentManager("micromamba/", False)
 
     def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
+        """Wait for the HTTP server to be ready by checking the URL."""
         start = time.time()
         while time.time() - start < timeout:
             try:
@@ -42,16 +43,18 @@ class CodeServerTool:
         return False
 
     def get_status(self):
+        if self.wait_for_http_ready():
+            self.status = "ready"
+        else:
+            self.status = "starting"
+
         return self.status
 
     def init_and_launch_code_server(self):
         """Install and launch code-server in a separate thread (only once)."""
-        # if self.status != "idle":
-        #     return
         with self._launch_lock:
             if self.environment_ready or self.status == "ready":
                 return  
-            # self.status = "starting"
             threading.Thread(target=self.setup_code_server, daemon=True).start()
 
     def setup_code_server(self):
@@ -88,14 +91,14 @@ class CodeServerTool:
             # self.environment.launch()
             self.process = self.environment.launch(commands, logOutputInThread=True)
 
-            if self.wait_for_http_ready():
-                self.environment_ready = True
-                self.status = "ready"
-            else:
-                self.status = "error: timeout waiting for port"
-            # self.environment_ready = True
-            # self.status = "ready"
-            print(f"Code server setup complete with status: {self.status}")
+            # if self.wait_for_http_ready():
+            #     self.environment_ready = True
+            #     self.status = "ready"
+            # else:
+            #     self.status = "error: timeout waiting for port"
+            # # self.environment_ready = True
+            # # self.status = "ready"
+            # print(f"Code server setup complete with status: {self.status}")
 
         except Exception as e:
             self.status = f"error: {str(e)}"
@@ -116,9 +119,7 @@ class CodeServerTool:
             print("Code server stopped successfully.")
             
         except Exception as e:
-            # print(f"Error stopping code-server: {e}")
-            # self.status = f"error stopping: {str(e)}"
-            pass
+            print(f"Error stopping code-server: {e}")
             
     # def is_running(self):
     #     """Check if code-server is still running."""
