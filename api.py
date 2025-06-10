@@ -24,7 +24,6 @@ class Api:
 
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
-        return {'status': 'starting' if not self.codeserver.environment_ready else 'already_started'}
     
     def getStatus(self):
         return self.codeserver.get_status()
