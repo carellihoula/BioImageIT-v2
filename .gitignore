@@ -45,3 +45,7 @@ cover/
 # pixi environments
 .pixi
 *.egg-info
+micromamba/
+micromamba_root/
+*.log
+*.ini

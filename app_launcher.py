@@ -1,11 +1,15 @@
 # BIOIMAGEIT/app_launcher.py
+import atexit
+import signal
 import webview
 import threading
 import uvicorn
 import time
+import sys
 from api import Api
-from server.main import app as quart_app
-
+from server.main import app as fastapi_app
+from src.Packages.Tools.CodeServerTool import CodeServerTool
+# from src.Packages.Tools.CodeServerTool import CodeServerTool
 
 
 SERVER_HOST = "127.0.0.1"
@@ -14,24 +18,38 @@ SERVER_PORT = 8000
 APP_URL = "http://localhost:5173"  # For testing on localhost
 
 instance_api = Api()
+code_server = CodeServerTool()
 
-def runQuartServer():
-    print(f"Starting Quart server on {APP_URL}")
+def cleanup(signum=None, frame=None):
+    try: 
+        print("Stopping Code Server and cleaning up...")
+        code_server.stop_code_server()
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+
+def runFastAPIServer():
+    print(f"Starting FastAPI server on {APP_URL}")
     try:
         uvicorn.run(
-            quart_app,
+            fastapi_app,
             host=SERVER_HOST,
             port=SERVER_PORT,
             log_level="info"
         )
     except Exception as e:
-        print(f"Error while starting or running Quart server: {e}")
+        print(f"Error while starting or running FastAPI server: {e}")
 
 if __name__ == '__main__':
     print("Launching BioImageIT application (minimal version)...")
-    server_thread = threading.Thread(target=runQuartServer, daemon=True)
-    server_thread.start()
 
+    # Register cleanup function for normal shutdown
+    atexit.register(cleanup)
+    # Register cleanup function for signal handling
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
+
+    server_thread = threading.Thread(target=runFastAPIServer, daemon=True)
+    server_thread.start()
     print(f"Waiting for server to start ({time.sleep(3) or 3} seconds)...")
 
     print(f"Launching Pywebview window pointing to {APP_URL}")
@@ -45,8 +63,11 @@ if __name__ == '__main__':
             js_api=instance_api
         )
         #gui='gtk'
-        webview.start(debug=False, gui="qt")
+        webview.start(debug=True, gui="qt")
     except Exception as e:
         print(f"Error while creating or starting Pywebview window: {e}")
+    finally:
+        # Final cleanup in case atexit doesn't trigger
+        cleanup()
 
     print("BioImageIT application (minimal version) terminated.")
