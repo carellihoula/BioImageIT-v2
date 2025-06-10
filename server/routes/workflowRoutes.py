@@ -1,97 +1,107 @@
-import os
-from quart import Blueprint, jsonify, request
-from quart.helpers import send_file
+from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import ValidationError
+from typing import Optional
 
 from src.WorkflowModule.WorkflowManager import (
     WorkflowManager,
     CreateWorkflowRequest,
-    RenameRequest ,
+    RenameRequest,
     DuplicateRequest
 )
-workflow_bp = Blueprint('workflows', __name__, url_prefix='/api/workflows')
+
+workflow_router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 workflow_manager = WorkflowManager()
 
-@workflow_bp.get("/")
-async def listWorkflowsRoute():
-    workflow_paths = workflow_manager.getWorkflows()
-    return jsonify(workflow_paths), 200
 
-@workflow_bp.post("/create")
-async def createWorkflowRoute():
-    payload = await request.get_json()
+@workflow_router.get("/")
+async def list_workflows():
+    workflow_paths = workflow_manager.getWorkflows()
+    return JSONResponse(content=workflow_paths)
+
+
+@workflow_router.post("/create")
+async def create_workflow(request: Request):
+    payload = await request.json()
     if not payload:
-        return jsonify({"error": "Missing JSON body"}), 400
+        raise HTTPException(status_code=400, detail="Missing JSON body")
 
     try:
         req_data = CreateWorkflowRequest(**payload)
-        workflow_name = req_data.name
-        parent_dir = req_data.path
     except ValidationError as e:
-        return jsonify({"error": "Invalid query data", "details": e.errors()}), 400
-    
-    if not workflow_name.strip() or not parent_dir.strip():
-        return jsonify({"error": "'name' and 'path' can't be empty"}), 400
+        raise HTTPException(status_code=400, detail={"error": "Invalid query data", "details": e.errors()})
 
-    result, status_code = workflow_manager.createWorkflow(workflow_name, parent_dir)
-    return jsonify(result), status_code
+    if not req_data.name.strip() or not req_data.path.strip():
+        raise HTTPException(status_code=400, detail="'name' and 'path' can't be empty")
 
-@workflow_bp.delete("/delete")
-async def deleteWorkflowRoute():
-    payload = await request.get_json()
+    result, status_code = workflow_manager.createWorkflow(req_data.name, req_data.path)
+    return JSONResponse(content=result, status_code=status_code)
+
+
+@workflow_router.delete("/delete")
+async def delete_workflow(request: Request):
+    payload = await request.json()
     if not payload or 'path' not in payload:
-        return jsonify({"error": "complete workflow path missing from JSON body"}), 400
-    
+        raise HTTPException(status_code=400, detail="complete workflow path missing from JSON body")
+
     workflow_to_delete_path = payload['path']
     if not isinstance(workflow_to_delete_path, str) or not workflow_to_delete_path.strip():
-        return jsonify({"error": "'name' must be a non-empty string"}), 400
+        raise HTTPException(status_code=400, detail="'path' must be a non-empty string")
 
     result, status_code = workflow_manager.deleteWorkflow(workflow_to_delete_path)
-    return jsonify(result), status_code
+    return JSONResponse(content=result, status_code=status_code)
 
-@workflow_bp.post("/duplicate")
-async def duplicateWorkflowRoute():
-    payload = await request.get_json()
-    if not payload: return jsonify({"error": "Missing JSON body"}), 400
+
+@workflow_router.post("/duplicate")
+async def duplicate_workflow(request: Request):
+    payload = await request.json()
+    if not payload:
+        raise HTTPException(status_code=400, detail="Missing JSON body")
+
     try:
-        req_model = DuplicateRequest(**payload) 
+        req_model = DuplicateRequest(**payload)
     except ValidationError as e:
-        return jsonify({"error": "Invalid query data for duplication", "details": e.errors()}), 400
+        raise HTTPException(status_code=400, detail={"error": "Invalid query data for duplication", "details": e.errors()})
 
-    # The manager method expects source_full_path_str, target_parent_path_str, target_name
     result, status_code = workflow_manager.duplicateWorkflow(
-        req_model.source_path, 
-        req_model.target_parent_path, 
-        req_model.target_name     
+        req_model.source_path,
+        req_model.target_parent_path,
+        req_model.target_name
     )
-    return jsonify(result), status_code
+    return JSONResponse(content=result, status_code=status_code)
 
 
-@workflow_bp.post("/rename")
-async def renameWorkflowRoute():
-    payload = await request.get_json()
-    if payload is None: return jsonify({"error": "Request must be JSON"}), 400
+@workflow_router.post("/rename")
+async def rename_workflow(request: Request):
+    payload = await request.json()
+    if payload is None:
+        raise HTTPException(status_code=400, detail="Request must be JSON")
+
     try:
         req_model = RenameRequest(**payload)
     except ValidationError as e:
-        return jsonify({"error": "Invalid request data", "details": e.errors()}), 400
+        raise HTTPException(status_code=400, detail={"error": "Invalid request data", "details": e.errors()})
 
     result, status_code = workflow_manager.renameWorkflow(req_model.old_full_path, req_model.new_name)
-    return jsonify(result), status_code
+    return JSONResponse(content=result, status_code=status_code)
 
-@workflow_bp.get("/export")
-async def exportWorkflow():
-    path = request.args.get('path')
-    print(path)
+
+@workflow_router.get("/export")
+async def export_workflow(path: Optional[str] = Query(None)):
+    if not path:
+        raise HTTPException(status_code=400, detail="Missing 'path' query parameter")
+
     result = workflow_manager.exportWorkflow(path)
 
     if isinstance(result, dict) and "error" in result:
-        return result
+        # Returns error in JSON
+        return JSONResponse(content=result, status_code=400)
+
     zip_file_path = result
-    return await send_file(
-            zip_file_path,
-            mimetype="application/zip",
-            as_attachment=True,
-            attachment_filename="temp.zip"
-        )
+
+    return FileResponse(
+        path=zip_file_path,
+        media_type="application/zip",
+        filename="temp.zip",
+    )
