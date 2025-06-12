@@ -43,7 +43,8 @@ cover/
 *.spec
 
 # pixi environments
-.pixi
+.pixi/
+pixi/
 *.egg-info
 micromamba/
 micromamba_root/
