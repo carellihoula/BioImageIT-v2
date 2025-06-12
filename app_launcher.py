@@ -1,5 +1,5 @@
-# BIOIMAGEIT/app_launcher.py
 import atexit
+import logging
 import signal
 import webview
 import threading
@@ -9,8 +9,13 @@ import sys
 from api import Api
 from server.main import app as fastapi_app
 from src.Packages.Tools.CodeServerTool import CodeServerTool
-# from src.Packages.Tools.CodeServerTool import CodeServerTool
+from server.websocket_manager import WebSocketManager
+from logging_config import configure_logging
 
+logger = logging.getLogger(__name__)
+
+
+configure_logging("app.log")
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8000
@@ -41,6 +46,7 @@ def runFastAPIServer():
 
 if __name__ == '__main__':
     print("Launching BioImageIT application (minimal version)...")
+    logger.info(" ac Launching BioImageIT application (minimal version)...")
 
     # Register cleanup function for normal shutdown
     atexit.register(cleanup)
