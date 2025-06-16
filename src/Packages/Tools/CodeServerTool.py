@@ -5,7 +5,8 @@ import requests
 
 from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
-
+from pathlib import Path
+from src import getRootPath
 
 # Initialize the environment manager
 # environmentManager = EnvironmentManager("micromamba/", False)
@@ -28,7 +29,7 @@ class CodeServerTool:
         self.status = "idle"
         self.environment = None
         self.process = None
-        self.environmentManager = EnvironmentManager("micromamba/", False)
+        self.environmentManager = EnvironmentManager("pixi/")
 
     def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
         """Wait for the HTTP server to be ready by checking the URL."""
@@ -72,24 +73,28 @@ class CodeServerTool:
             if not self.environmentManager.environmentExists(env_name):
                 print("Creating new code-server environment...")
 
-            self.environment = ExternalEnvironment(env_name, self.environmentManager)
-            self.environmentManager.create(
+            extension_path = getRootPath() / 'launchfileauto-latest.vsix'
+            print(f"Extension path: {extension_path}")
+            # self.environment = ExternalEnvironment(env_name, self.environmentManager)
+            self.environment = self.environmentManager.create(
                 environment=env_name,
                 dependencies=dependencies,
-                forceExternal=True,
+                additionalInstallCommands=[f"code-server --install-extension {extension_path}"]
             )
-            print(f"Created environment of type: {type(self.environment)}")
+            
             commands = [
-                "code-server --install-extension launchfileauto-latest.vsix",
+                # f"code-server --install-extension {extension_path}",
                 # launch code-server
                 "code-server --auth none --bind-addr 127.0.0.1:3000"
             ]
 
-            if not isinstance(self.environment, ExternalEnvironment):
-                raise TypeError(f"Expected ExternalEnvironment but got {type(self.environment)}")
 
             # self.environment.launch()
-            self.process = self.environment.launch(commands, logOutputInThread=True)
+           
+            if not self.environment.launched():
+                self.process = self.environment.launch()
+
+            self.environment.executeCommands(commands)
 
             # if self.wait_for_http_ready():
             #     self.environment_ready = True
