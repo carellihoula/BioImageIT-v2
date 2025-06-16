@@ -1,23 +1,23 @@
 from pathlib import Path
 from importlib import import_module
 import re
-import sys
+from src import getRootPath
 
-try:
-    PROJECT_ROOT_PATH = Path(__file__).resolve().parents[3]
-except IndexError:
-    PROJECT_ROOT_PATH = Path(__file__).resolve().parent
-    print(f"WARNING: Unable to go up 3 levels from {Path(__file__).resolve().parent}. PROJECT_ROOT_PATH is set to {PROJECT_ROOT_PATH}")
-    print("Make sure Biit.py is in src/Packages/FunctionLibraries/ for PROJECT_ROOT_PATH to be correct.")
+# try:
+#     PROJECT_ROOT_PATH = Path(__file__).resolve().parents[3]
+# except IndexError:
+#     PROJECT_ROOT_PATH = Path(__file__).resolve().parent
+#     print(f"WARNING: Unable to go up 3 levels from {Path(__file__).resolve().parent}. PROJECT_ROOT_PATH is set to {PROJECT_ROOT_PATH}")
+#     print("Make sure Biit.py is in src/Packages/FunctionLibraries/ for PROJECT_ROOT_PATH to be correct.")
 
-TOOLS_BASE_PATH = PROJECT_ROOT_PATH / "src" / "Tools"
+TOOLS_BASE_PATH = getRootPath() / "src" / "Tools"
 
 def sourcesFolderHasVersion(sourcesPath:Path):
     pattern = r"^bioimageit-v\d+\.\d+\.\d+-[a-f0-9]+$"
     return bool(re.match(pattern, sourcesPath.name))
 
 def get_project_root_path() -> Path:
-    return PROJECT_ROOT_PATH
+    return getRootPath()
 
 sourcesPath = Path(__file__).parent.parent
 rootPath = sourcesPath.parent if sourcesFolderHasVersion(sourcesPath) else sourcesPath
