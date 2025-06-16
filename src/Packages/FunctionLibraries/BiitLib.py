@@ -10,6 +10,9 @@ from src import getRootPath
 #     print(f"WARNING: Unable to go up 3 levels from {Path(__file__).resolve().parent}. PROJECT_ROOT_PATH is set to {PROJECT_ROOT_PATH}")
 #     print("Make sure Biit.py is in src/Packages/FunctionLibraries/ for PROJECT_ROOT_PATH to be correct.")
 
+class BiitLib:
+    classes = {}
+
 TOOLS_BASE_PATH = getRootPath() / "src" / "Tools"
 
 def sourcesFolderHasVersion(sourcesPath:Path):
@@ -70,4 +73,38 @@ def load_tools_info(tools_directory_path_str: str | Path) -> list:
 
 toolsPath = TOOLS_BASE_PATH
 
-            
+def createNode(modulePath: Path, moduleImportPath: str, module):
+    if not hasattr(module, 'Tool'):
+        return None
+
+    tool = module.Tool
+    tool.moduleImportPath = moduleImportPath
+
+   
+    if not hasattr(tool, 'environment'):
+        tool.environment = 'bioimageit'
+    if not hasattr(tool, 'dependencies'):
+        tool.dependencies = {}
+
+    for attr in ['name', 'description']:
+        if not hasattr(tool, attr):
+            raise Exception(f"Tool {moduleImportPath} missing required attribute: {attr}")
+
+    BiitLib.classes[modulePath.name] = tool
+    return tool
+
+def loadTool(path: Path):
+    import_path = getImportPath(path)
+    module = import_module(import_path)
+    return createNode(path, import_path, module)
+
+
+# def make_serializable(value):
+#     if isinstance(value, (str, int, float, bool, type(None))):
+#         return value
+#     elif isinstance(value, (list, tuple)):
+#         return [make_serializable(item) for item in value]
+#     elif isinstance(value, dict):
+#         return {k: make_serializable(v) for k, v in value.items()}
+#     else:
+#         return str(value)
