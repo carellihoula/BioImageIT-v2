@@ -18,9 +18,8 @@ async def getTools():
     return JSONResponse(content=tools_info, status_code=200)
 
 class ToolInput(BaseModel):
-    name: str
-    folder: str
     filename: str
+    folder: str
 
 @tool_router.post("/")
 async def create_tool(tool: ToolInput):
@@ -35,7 +34,7 @@ async def create_tool(tool: ToolInput):
 
     try:
         # Write Python tool file
-        write_tool_file(tool_file_path, tool.name)
+        write_tool_file(tool_file_path, tool.filename)
 
         # Load the tool to register it
         loadTool(tool_file_path)
