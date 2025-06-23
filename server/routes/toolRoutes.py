@@ -10,11 +10,11 @@ from shutil import copy2
 tool_router = APIRouter(prefix="/api/tools", tags=["tools"])
 
 @tool_router.get("/")
-async def getTools():
+async def getTools(toolsWorkflow: str):
     """
     endpoint to retrieve all tools
     """
-    tools_info = load_tools_info(toolsPath)
+    tools_info = load_tools_info(toolsPath, toolsWorkflow)
     # print(f'tools_info: {tools_info}')
     return JSONResponse(content=tools_info, status_code=200)
 
@@ -24,28 +24,20 @@ class ToolInput(BaseModel):
 
 @tool_router.post("/")
 async def create_tool(tool: ToolInput):
-    tool_folder_path = toolsPath / tool.filename
     current_workflow_tools_path = Path(tool.current_workflow) / "Tools"
-    tool_file_path = tool_folder_path / f"{tool.filename}.py"
 
     if not current_workflow_tools_path.exists():
         raise HTTPException(status_code=404, detail="Workflow tools folder does not exist")
     
-    if not tool_folder_path.exists():
-        tool_folder_path.mkdir(parents=True, exist_ok=True)
+    tool_file_path = current_workflow_tools_path / tool.filename / f"{tool.filename}.py"
 
     if tool_file_path.exists():
         raise HTTPException(status_code=400, detail="Tool already exists")
 
     try:
+        tool_file_path.parent.mkdir(parents=True, exist_ok=True)
         # Write Python tool file
         write_tool_file(tool_file_path, tool.filename)
-        # create the tool in the current workflow Tools folder
-        tool_subdir = current_workflow_tools_path / tool.filename
-        tool_subdir.mkdir(parents=True, exist_ok=True)
-
-        destination = tool_subdir / f"{tool.filename}.py"
-        copy2(tool_file_path, destination)
         # Load the tool to register it
         loadTool(tool_file_path)
 

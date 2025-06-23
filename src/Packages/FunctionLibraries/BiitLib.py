@@ -1,6 +1,7 @@
 from pathlib import Path
 from importlib import import_module
 import re
+import sys
 from src import getRootPath
 
 # try:
@@ -15,6 +16,7 @@ class BiitLib:
 
 TOOLS_BASE_PATH = getRootPath() / "src" / "Tools"
 
+
 def sourcesFolderHasVersion(sourcesPath:Path):
     pattern = r"^bioimageit-v\d+\.\d+\.\d+-[a-f0-9]+$"
     return bool(re.match(pattern, sourcesPath.name))
@@ -22,14 +24,11 @@ def sourcesFolderHasVersion(sourcesPath:Path):
 def get_project_root_path() -> Path:
     return getRootPath()
 
-sourcesPath = Path(__file__).parent.parent
-rootPath = sourcesPath.parent if sourcesFolderHasVersion(sourcesPath) else sourcesPath
-
-def getSourcesPath():
-    return sourcesPath
-
-def getImportPath(toolPath: Path):
+def getImportPath(toolPath: Path) -> str:
     return '.'.join(toolPath.resolve().relative_to(get_project_root_path()).with_suffix('').parts)
+
+# def getImportPath(toolPath: Path, base_path: Path) -> str:
+#     return '.'.join(toolPath.resolve().relative_to(base_path).with_suffix('').parts)
 
 def getTools(tools_directory_path: Path) -> list[Path]:
     if not tools_directory_path.is_dir():
@@ -39,7 +38,7 @@ def getTools(tools_directory_path: Path) -> list[Path]:
 def get_tool_info(tool_path: Path, module: object) -> dict | None:
     if not hasattr(module, 'Tool'):
         return None
-    
+
     tool_class = module.Tool
     tool_info = {
         'name': getattr(tool_class, 'name', "Undefined Name"),
@@ -50,17 +49,35 @@ def get_tool_info(tool_path: Path, module: object) -> dict | None:
         'inputs': getattr(tool_class, 'inputs', []),
         'outputs': getattr(tool_class, 'outputs', []),
         'test': getattr(tool_class, 'test', []),
-        'path': str(tool_path.relative_to(TOOLS_BASE_PATH)),
+        'path': str(tool_path.relative_to(getRootPath())),
         'module_path': getImportPath(tool_path)
     }
     return tool_info
+def add_to_syspath(path: Path):
+    s = str(path.resolve())
+    if s not in sys.path:
+        sys.path.insert(0, s)
 
-def load_tools_info(tools_directory_path_str: str | Path) -> list:
+
+def load_tools_info(tools_directory_path_str: str | Path, tools_dictory_workflow_path: str | Path) -> list:
     tools_dir_path = Path(tools_directory_path_str)
+    tools_workflow_path = Path(tools_dictory_workflow_path) / "Tools"
+   
+    # sys.path.insert(0, str(tools_dir_path))
+    # sys.path.insert(0, str(tools_workflow_path))
+
     tools_information = []
-    for tool_file_path in getTools(tools_dir_path):
+    # Concatenate tools from both directories
+    all_tool_paths = list(getTools(tools_dir_path)) + list(getTools(tools_workflow_path))
+    print(f"Loading tools from: {list(getTools(tools_workflow_path))}")
+    for tool_file_path in all_tool_paths:
         module_import_str = ""
         try:
+            # if str(tool_file_path).startswith(str(tools_dir_path)):
+            #     base_path = tools_dir_path
+            # else:
+                
+            #     base_path = tools_workflow_path.parent
             module_import_str = getImportPath(tool_file_path)
             module = import_module(module_import_str)
             tool_info = get_tool_info(tool_file_path, module)
