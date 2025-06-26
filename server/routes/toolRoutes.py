@@ -3,9 +3,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from src.Packages.FunctionLibraries.BiitLib import load_tools_info, loadTool, toolsPath
+from src.Packages.FunctionLibraries.BiitLib import load_tools_info, loadTool, toolsPath, add_to_syspath
 from src.Packages.FunctionLibraries.ToolGenerator import write_tool_file
-from shutil import copy2
 
 tool_router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -25,7 +24,7 @@ class ToolInput(BaseModel):
 @tool_router.post("/")
 async def create_tool(tool: ToolInput):
     current_workflow_tools_path = Path(tool.current_workflow) / "Tools"
-
+    workflow_base_path = Path(tool.current_workflow)
     if not current_workflow_tools_path.exists():
         raise HTTPException(status_code=404, detail="Workflow tools folder does not exist")
     
@@ -36,10 +35,16 @@ async def create_tool(tool: ToolInput):
 
     try:
         tool_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Add workflow directory to sys.path for import
+        add_to_syspath(workflow_base_path)
+        
+
         # Write Python tool file
         write_tool_file(tool_file_path, tool.filename)
+
         # Load the tool to register it
-        loadTool(tool_file_path)
+        loadTool(tool_file_path, workflow_base_path)
 
         return JSONResponse(content={"message": "Tool created and loaded successfully"}, status_code=201)
 

@@ -21,21 +21,15 @@ def sourcesFolderHasVersion(sourcesPath:Path):
     pattern = r"^bioimageit-v\d+\.\d+\.\d+-[a-f0-9]+$"
     return bool(re.match(pattern, sourcesPath.name))
 
-def get_project_root_path() -> Path:
-    return getRootPath()
-
-def getImportPath(toolPath: Path) -> str:
-    return '.'.join(toolPath.resolve().relative_to(get_project_root_path()).with_suffix('').parts)
-
-# def getImportPath(toolPath: Path, base_path: Path) -> str:
-#     return '.'.join(toolPath.resolve().relative_to(base_path).with_suffix('').parts)
+def getImportPath(toolPath: Path, base_path: Path) -> str:
+    return '.'.join(toolPath.resolve().relative_to(base_path).with_suffix('').parts)
 
 def getTools(tools_directory_path: Path) -> list[Path]:
     if not tools_directory_path.is_dir():
         return []
     return sorted([p for p in tools_directory_path.rglob('*.py') if p.is_file() and p.name != "__init__.py"])
 
-def get_tool_info(tool_path: Path, module: object) -> dict | None:
+def get_tool_info(tool_path: Path, module: object, base_path: Path) -> dict | None:
     if not hasattr(module, 'Tool'):
         return None
 
@@ -49,10 +43,11 @@ def get_tool_info(tool_path: Path, module: object) -> dict | None:
         'inputs': getattr(tool_class, 'inputs', []),
         'outputs': getattr(tool_class, 'outputs', []),
         'test': getattr(tool_class, 'test', []),
-        'path': str(tool_path.relative_to(getRootPath())),
-        'module_path': getImportPath(tool_path)
+        'path': str(tool_path.relative_to(base_path)),
+        'module_path': getImportPath(tool_path, base_path)
     }
     return tool_info
+
 def add_to_syspath(path: Path):
     s = str(path.resolve())
     if s not in sys.path:
@@ -63,24 +58,23 @@ def load_tools_info(tools_directory_path_str: str | Path, tools_dictory_workflow
     tools_dir_path = Path(tools_directory_path_str)
     tools_workflow_path = Path(tools_dictory_workflow_path) / "Tools"
    
-    # sys.path.insert(0, str(tools_dir_path))
-    # sys.path.insert(0, str(tools_workflow_path))
+    add_to_syspath(tools_dir_path)
+    add_to_syspath(tools_workflow_path.parent)
 
     tools_information = []
     # Concatenate tools from both directories
     all_tool_paths = list(getTools(tools_dir_path)) + list(getTools(tools_workflow_path))
-    print(f"Loading tools from: {list(getTools(tools_workflow_path))}")
+    
     for tool_file_path in all_tool_paths:
         module_import_str = ""
         try:
-            # if str(tool_file_path).startswith(str(tools_dir_path)):
-            #     base_path = tools_dir_path
-            # else:
-                
-            #     base_path = tools_workflow_path.parent
-            module_import_str = getImportPath(tool_file_path)
+            if str(tool_file_path).startswith(str(tools_dir_path)):
+                base_path = tools_dir_path
+            else: 
+                base_path = tools_workflow_path.parent
+            module_import_str = getImportPath(tool_file_path, base_path)
             module = import_module(module_import_str)
-            tool_info = get_tool_info(tool_file_path, module)
+            tool_info = get_tool_info(tool_file_path, module, base_path)
             if tool_info is not None:
                 tools_information.append(tool_info)
         except Exception as e:
@@ -110,8 +104,8 @@ def createNode(modulePath: Path, moduleImportPath: str, module):
     BiitLib.classes[modulePath.name] = tool
     return tool
 
-def loadTool(path: Path):
-    import_path = getImportPath(path)
+def loadTool(path: Path, base_path: Path = None):
+    import_path = getImportPath(path, base_path)
     module = import_module(import_path)
     return createNode(path, import_path, module)
 
