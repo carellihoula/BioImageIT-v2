@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.routes.toolRoutes import tool_router
 from server.routes.workflowRoutes import workflow_router
 from server.sockets import websocket_endpoint
+from src import getRootPath
 
 # "http://localhost:5174",
 # "http://localhost:5173",
@@ -53,8 +54,13 @@ app.include_router(workflow_router)
 
 @app.get("/")
 def read_root():
-    # HTTP Endpoint to check that FastAPI is working properly.
+    """ HTTP Endpoint to check that FastAPI is working properly."""
     return {"message": "FastAPI WebSocket is running!"}
+
+@app.get("/projectRootPath")
+def getProjectPath():
+    """HTTP Endpoint to get the root path of the project."""
+    return getRootPath()
 
 
 
