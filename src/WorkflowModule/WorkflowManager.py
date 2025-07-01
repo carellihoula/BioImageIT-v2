@@ -101,6 +101,8 @@ class WorkflowManager:
             workflow_path.mkdir(parents=True)
             (workflow_path / "Thumbnails").mkdir(parents=True, exist_ok=True)
             (workflow_path / "Thumbnails" / ".keep").touch()
+            (workflow_path / "Tools").mkdir(parents=True, exist_ok=True)
+            # (workflow_path / "Tools" / ".keep").touch()
             (workflow_path / ".gitignore").write_text("Metadata/*/*data_frame.csv\nData/\nThumbnails/\n.DS_Store\n")
             with open(workflow_path / "graph.json", "w") as f:
                 json.dump(DEFAULT_WORKFLOW_CONTENT, f, indent=2)
