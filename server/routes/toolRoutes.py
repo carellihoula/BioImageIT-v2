@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from src.Packages.FunctionLibraries.BiitLib import load_tools_info, loadTool, toolsPath, add_to_syspath
 from src.Packages.FunctionLibraries.ToolGenerator import write_tool_file
+# from src.WorkflowModule.WorkflowManager import workflowManager
 
 tool_router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -50,3 +51,12 @@ async def create_tool(tool: ToolInput):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create tool: {e}")
+
+# @tool_router.get("/workflow")
+# async def getToolsListByWorkflow(workflow_path: str):
+#     """
+#     endpoint to retrieve all tools for a specific workflow
+#     """
+#     toolsList = workflowManager.getToolsByWorkflow(workflow_path)
+
+#     return JSONResponse(content=toolsList, status_code=200)

@@ -16,12 +16,6 @@ class Api:
         self.workflow_manager = WorkflowManager()
         self.codeserver = CodeServerTool()
 
-    def getHomePath(self):
-        """
-        Returns the home directory path of the current user.
-        """
-        return str(Path.home())
-
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
     
@@ -172,3 +166,11 @@ class Api:
             return { "success": True, "data": data }
         except Exception as e:
             return { "success": False, "error": str(e) }
+    
+    def getWorkflowTools(self, workflow_path: str):
+        """
+        Returns a list of tools for the specified workflow.
+        """
+        toolsList = self.workflow_manager.getToolsByWorkflow(workflow_path)
+
+        return toolsList

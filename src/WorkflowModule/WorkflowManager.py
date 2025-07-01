@@ -266,3 +266,30 @@ class WorkflowManager:
             print(f"Error in openWorkflowFromGraph for {graph_json_path_str}: {e}")
             return {"error": f"Internal server error while opening workflow: {str(e)}"}
 
+    def getToolsByWorkflow(self, workflow_full_path_str: str) -> list[str]:
+        """
+        Returns a list of tool names (absolute paths) in the specified workflow.
+        """
+        workflow_path = Path(workflow_full_path_str).resolve()
+        tools_dir = workflow_path / "Tools"
+
+        if not tools_dir.exists() or not tools_dir.is_dir():
+            return []
+        
+        tool_paths = []
+        for tool_path in tools_dir.rglob("*.py"):
+            if tool_path.is_file():
+                # Get relative path from workflow root
+                relative_path = tool_path.relative_to(workflow_path)
+                module_path = str(relative_path).replace("\\", "/")  # assure les slashs Unix
+                absolute_path = str(tool_path.resolve())
+                tool_paths.append({
+                    "module_path": module_path,
+                    "absolute_path": absolute_path
+                })
+        # List all tool directories (subdirectories) in the Tools directory
+        # tool_paths = [str(tool_path.resolve()) for tool_path in tools_dir.rglob("*.py") if tool_path.is_file()]
+        # return tool_paths
+        return tool_paths
+    
+workflowManager = WorkflowManager() 
