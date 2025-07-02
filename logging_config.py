@@ -26,9 +26,21 @@ class SocketHandler(logging.Handler):
         while True:
             try:
                 async with websockets.connect(self.ws_url) as websocket:
-                    while True:
-                        log_entry = await self.queue.get()
-                        await websocket.send(json.dumps(log_entry))
+                    await websocket.send(json.dumps({
+                    "action": "wait_for_permission",
+                    "topic": "logs"
+                    }))
+
+                    permission_response = await websocket.recv()
+                    permission_data = json.loads(permission_response)
+
+                    if permission_data.get("message") is True:
+                        while True:
+                            log_entry = await self.queue.get()
+                            await websocket.send(json.dumps(log_entry))
+                    else:
+                        print("Permission denied for sending logs.")
+                        await asyncio.sleep(1)
             except Exception as e:
                 print(f"⚠️ WebSocket connection interrupted : {e}")
                 await asyncio.sleep(3)
@@ -39,7 +51,7 @@ class SocketHandler(logging.Handler):
                 return
             # msg = self.format(record)
             log_entry = {
-                "action": "broadcast",
+                "action": "publish",
                 "topic": "logs",
                 "message": {
                     "time": self.formatTime(record),         
