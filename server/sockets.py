@@ -42,7 +42,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif action == "broadcast" and message:
                 print(f"📢 Broadcasting message: {message}")
-                await ws_manager.broadcast(message)
+                await ws_manager.broadcast(topic, message)
     except Exception as e:
         print(f"⚠️ Server WebSocket status: {e}")
     finally:

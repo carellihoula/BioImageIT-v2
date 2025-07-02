@@ -12,10 +12,11 @@ from src.Packages.Tools.CodeServerTool import CodeServerTool
 from server.websocket_manager import WebSocketManager
 from logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+
 
 
 configure_logging("app.log")
+logger = logging.getLogger(__name__)
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8000
