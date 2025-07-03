@@ -29,11 +29,14 @@ class WebSocketManager:
         for connection in self.topic_subscribers.get(topic, []):
             await connection.send_json({"topic": topic, "message": message})
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, topic: str, message: str):
         """Sends a message to all connected clients."""
         for connection in self.active_connections:
-            await connection.send_json({"topic": "broadcast", "message": message})
+            await connection.send_json({"action": "broadcast", "topic": topic, "message": message})    
     
     def subscribe(self, websocket: WebSocket, topic: str):
         if websocket not in self.topic_subscribers[topic]:
             self.topic_subscribers[topic].append(websocket)
+
+# on exporte une unique instance
+ws_manager = WebSocketManager()
