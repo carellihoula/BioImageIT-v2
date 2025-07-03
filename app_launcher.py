@@ -67,6 +67,7 @@ if __name__ == '__main__':
             width=1900,
             height=900,
             text_select=True,
+            confirm_close=True,
             resizable=True,
             js_api=instance_api
         )
