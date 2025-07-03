@@ -29,7 +29,7 @@ class CodeServerTool:
         self.status = "idle"
         self.environment = None
         self.process = None
-        self.environmentManager = EnvironmentManager("pixi/")
+        self.environmentManager = EnvironmentManager("micromamba/", False)
 
     def wait_for_http_ready(self, url="http://127.0.0.1:3000", timeout=120):
         """Wait for the HTTP server to be ready by checking the URL."""
