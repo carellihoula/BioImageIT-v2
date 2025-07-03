@@ -47,7 +47,7 @@ def runFastAPIServer():
 
 if __name__ == '__main__':
     print("Launching BioImageIT application (minimal version)...")
-    logger.info(" ac Launching BioImageIT application (minimal version)...")
+    logger.info("Launching BioImageIT application (minimal version)...")
 
     # Register cleanup function for normal shutdown
     atexit.register(cleanup)
