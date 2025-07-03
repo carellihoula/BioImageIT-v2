@@ -66,6 +66,7 @@ if __name__ == '__main__':
             APP_URL,
             width=1900,
             height=900,
+            text_select=True,
             resizable=True,
             js_api=instance_api
         )
