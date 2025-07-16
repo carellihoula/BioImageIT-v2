@@ -16,7 +16,7 @@ dependencies = [
     "scipy>=1.15.1,<2",
     "fastapi>=0.115.11,<0.116",
     "websockets>=15.0.1,<16",
-    "wetlands>=0.2.0"
+    "wetlands>=0.2.0",
      
 ]
 name = "BioImageIT"
@@ -31,8 +31,18 @@ requires = ["hatchling"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
-# [tool.pixi.pypi-dependencies]
-# bioimageit = { path = ".", editable = true }
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-v --tb=short"
+testpaths = [
+    "tests",
+]
+# pythonpath = ["src"]
+
+[tool.pixi.pypi-dependencies]
+bioimageit = { path = ".", editable = true }
+pytest = ">=8.4.1"
+pytest-cov = ">=6.2.1"
 
 [tool.pixi.dependencies] # Explicitly define dependencies using Conda.
 omero-py = "==5.15.0"
@@ -42,3 +52,5 @@ pycairo = ">=1.28.0"
 [tool.pixi.tasks]
 start = "python app_launcher.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
