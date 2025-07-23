@@ -63,7 +63,7 @@ if __name__ == '__main__':
     try:
         webview.create_window(
             'BioImageIT Minimal',
-            APP_URL,
+            APP_URL, #'server/static/react_build/index.html',
             width=1900,
             height=900,
             text_select=True,

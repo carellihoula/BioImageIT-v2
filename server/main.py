@@ -46,23 +46,25 @@ static_dir = current_dir / "static"
 static_images_path = static_dir / "images"
 app.mount("/images", StaticFiles(directory=static_images_path, follow_symlink=True), name="images")
 
-# # Mount the ReactJS  App
-reactjs_build_dir = static_dir / "react_build"
-app.mount("/react", StaticFiles(directory=reactjs_build_dir), name="react")
+
+"""currently unusable, as pywebview internally uses the bottle.py HTTP server to serve static files."""
+# Mount the ReactJS  App
+# reactjs_build_dir = static_dir / "react_build"
+# app.mount("/react", StaticFiles(directory=reactjs_build_dir), name="react")
 
 # ------------------------------------------------------------------
 # catch-all Route for ReactJS 
 # ------------------------------------------------------------------
-@app.get("/react", response_class=HTMLResponse)
-async def serve_react_app():
-    """catch-all Route for  Table Tool ReactJS """
-    index_path = reactjs_build_dir / "index.html"
-    try:
-        with open(index_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-    except Exception as e:
-        return HTMLResponse(content=f"Error while reading index.html file : {e}", status_code=500)
-    return HTMLResponse(content=html_content, status_code=200)
+# @app.get("/react", response_class=HTMLResponse)
+# async def serve_react_app():
+#     """catch-all Route for  Table Tool ReactJS """
+#     index_path = reactjs_build_dir / "index.html"
+#     try:
+#         with open(index_path, "r", encoding="utf-8") as f:
+#             html_content = f.read()
+#     except Exception as e:
+#         return HTMLResponse(content=f"Error while reading index.html file : {e}", status_code=500)
+#     return HTMLResponse(content=html_content, status_code=200)
 
 
 
