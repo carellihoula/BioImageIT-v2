@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pydantic import BaseModel
 import zipfile
+from PIL import Image
 
 BASE_WORKFLOWS_STORAGE = Path.home() / "BioImageIT_Workflows"
 # file that will store the paths of managed workflows
@@ -292,4 +293,69 @@ class WorkflowManager:
         # return tool_paths
         return tool_paths
     
+
+    def createSymbolicLink(self, workflow_full_path_str: str):
+        """Create a symbolic link to the current workflow's Thumbnails folder only once."""
+        try:
+            # Get the current workflow path and its name.
+            workflow_path = Path(workflow_full_path_str).resolve()
+            workflow_name = Path(workflow_path).name
+
+            # Build the server directory for this workflow.
+            server_static_path = Path('server/static/images') / workflow_name
+            server_static_path.mkdir(parents=True, exist_ok=True)
+
+            # Resolve the absolute path of the Thumbnails folder in the workflow.
+            thumbnails_path = (Path(workflow_path) / 'Thumbnails').resolve()
+            if thumbnails_path.exists():
+                # Define the target symbolic link path (using absolute paths to avoid recursion).
+                target_link = (server_static_path / 'Thumbnails')
+                
+                # Check if the target_link already exists.
+                if target_link.exists():
+                    # If it's a symlink and it already points to the correct target, do nothing.
+                    if target_link.is_symlink() and target_link.resolve() == thumbnails_path:
+                        print(f"Symbolic link already exists: {target_link}")
+                        return
+                    else:
+                        # Otherwise, remove the existing file/link.
+                        target_link.unlink()
+                
+                # Create the symbolic link using the absolute path of the target.
+                target_link.symlink_to(thumbnails_path, target_is_directory=True)
+                print(f"Created symbolic link: {target_link} -> {thumbnails_path}")
+                print(f"Accessible via: http://localhost:8000/images/{workflow_name}/Thumbnails/")
+            else:
+                print("The Thumbnails folder does not exist in the workflow.")
+        except Exception as e:
+            print(f"Error creating symbolic link: {e}")
+    def generate_thumbnail(self, src_path, dest_path, size=(128, 128)):
+        try:
+            img = Image.open(src_path)
+            img.thumbnail(size)
+            img.save(dest_path)
+            print(f"✔ Thumbnail created: {dest_path}")
+        except Exception as e:
+            print(f"⚠ Failed to create thumbnail for {src_path}: {e}")
+
+    def generate_thumbnails_for_folder(self, src_folder, dest_folder, size=(128, 128)):
+        src_folder = Path(src_folder)
+        dest_folder = Path(dest_folder)
+        dest_folder.mkdir(parents=True, exist_ok=True)
+
+        supported_extensions = (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp")
+
+        for img_file in src_folder.iterdir():
+            if img_file.is_file() and img_file.suffix.lower() in supported_extensions:
+                dest_path = dest_folder / img_file.name  # same filename
+                self.generate_thumbnail(img_file, dest_path, size)
+
 workflowManager = WorkflowManager() 
+
+workflowManager.createSymbolicLink("/home/carellihoula/Images/SQS")
+
+workflowManager.generate_thumbnails_for_folder(
+    src_folder="/home/carellihoula/Images/SQS/Data/Extract channel", 
+    dest_folder="/home/carellihoula/Images/SQS/Thumbnails/Extract channel", 
+    size=(256, 256)
+)
