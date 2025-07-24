@@ -3,9 +3,13 @@ import json
 from pathlib import Path
 import shutil
 import tempfile
+import pandas
 from pydantic import BaseModel
 import zipfile
 from PIL import Image
+import websockets
+
+from src.ThumbnailManagement.ThumbnailGenerator import ThumbnailGenerator
 
 BASE_WORKFLOWS_STORAGE = Path.home() / "BioImageIT_Workflows"
 # file that will store the paths of managed workflows
@@ -329,33 +333,67 @@ class WorkflowManager:
                 print("The Thumbnails folder does not exist in the workflow.")
         except Exception as e:
             print(f"Error creating symbolic link: {e}")
-    def generate_thumbnail(self, src_path, dest_path, size=(128, 128)):
+    
+    def convertAbsolutePathToUrl(self, abs_path, workflow_path:str):
+        """
+        Convert an absolute path to a URL format.
+        Cut the absolute path to the workflow name and add the URL prefix (http://localhost:8000/images/).
+        Example:
+        Input: "/home/user/workflow_name/Thumbnails/node_name/image.png"
+        Output: "http://localhost:8000/images/workflow_name/Thumbnails/node_name/image.png"
+        """
+        if abs_path is None:
+            return None
+        abs_path_str = str(abs_path)
+        # Retrieve  the workflow name from the pyFlow instance
+        workflow_name = Path(workflow_path).name
+        # Check if the workflow name is in the absolute path
+        if workflow_name in abs_path_str:
+            # Get the relative path after the workflow name
+            relative_path = abs_path_str.split(workflow_name, 1)[1].lstrip("/\\")
+            # Construct the URL
+            return f"http://localhost:8000/images/{workflow_name}/{relative_path}"
+        return abs_path_str
+
+    
+    async def sendDataWebSocket(self, topic:str, data, selectedNode):
+        """Convert all paths to thumbnail paths, add URL columns, and send data over WebSocket."""
         try:
-            img = Image.open(src_path)
-            img.thumbnail(size)
-            img.save(dest_path)
-            print(f"✔ Thumbnail created: {dest_path}")
+            async with websockets.connect(self.ws_url) as websocket:
+            
+                if isinstance(data, pandas.DataFrame):
+                    df = data.copy()
+                    # node_name = self.pyFlowInstance.getCanvas().selectedNodes()[0].name
+                    node_name = selectedNode.name
+
+                    for column in df.columns:
+                        df[column+'_thumbnail'] = df[column].map(lambda x: self.convertAbsolutePathToUrl(ThumbnailGenerator.get().getThumbnailPath(x)))
+                    
+                    # Permission request: the server will send a notification as soon as there is at least one subscriber.
+                    await websocket.send(json.dumps({
+                        "action": "wait_for_permission",
+                        "topic": topic,
+                    }))
+                    # wait for the response
+                    permission_response = await websocket.recv()
+                    permission_data = json.loads(permission_response)
+
+                    if permission_data.get("permission", False):
+                        # Prepare the data to be sent
+                        message_payload = {
+                            "node": node_name,
+                            "results": df.to_dict(orient="records")
+                        }
+                        message = {
+                            "topic": "table_data",
+                            "action": "publish",
+                            "message": message_payload
+                        }
+                        await websocket.send(json.dumps(message, default=str))
+                    else:
+                        print("Permission not granted to publish on this topic.")
         except Exception as e:
-            print(f"⚠ Failed to create thumbnail for {src_path}: {e}")
-
-    def generate_thumbnails_for_folder(self, src_folder, dest_folder, size=(128, 128)):
-        src_folder = Path(src_folder)
-        dest_folder = Path(dest_folder)
-        dest_folder.mkdir(parents=True, exist_ok=True)
-
-        supported_extensions = (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp")
-
-        for img_file in src_folder.iterdir():
-            if img_file.is_file() and img_file.suffix.lower() in supported_extensions:
-                dest_path = dest_folder / img_file.name  # same filename
-                self.generate_thumbnail(img_file, dest_path, size)
+            print(f"Client WebSocket status: {e}")
+    
 
 workflowManager = WorkflowManager() 
-
-workflowManager.createSymbolicLink("/home/carellihoula/Images/SQS")
-
-workflowManager.generate_thumbnails_for_folder(
-    src_folder="/home/carellihoula/Images/SQS/Data/Extract channel", 
-    dest_folder="/home/carellihoula/Images/SQS/Thumbnails/Extract channel", 
-    size=(256, 256)
-)

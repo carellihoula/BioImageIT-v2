@@ -16,7 +16,8 @@ dependencies = [
     "scipy>=1.15.1,<2",
     "fastapi>=0.115.11,<0.116",
     "websockets>=15.0.1,<16",
-    "wetlands>=0.2.0"
+    "wetlands>=0.2.0",
+    "blinker>=1.8.2,<2",
      
 ]
 name = "BioImageIT"
