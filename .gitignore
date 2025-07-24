@@ -50,3 +50,6 @@ micromamba/
 micromamba_root/
 *.log
 *.ini
+
+server/static/images
+src/WorkflowModule/server/static/images/SQS/Thumbnails
