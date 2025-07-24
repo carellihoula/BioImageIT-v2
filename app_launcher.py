@@ -63,7 +63,7 @@ if __name__ == '__main__':
     try:
         webview.create_window(
             'BioImageIT Minimal',
-            APP_URL,
+            APP_URL, #'server/static/react_build/index.html',
             width=1900,
             height=900,
             text_select=True,
@@ -72,7 +72,8 @@ if __name__ == '__main__':
             js_api=instance_api
         )
         #gui='gtk'
-        webview.start(debug=True, gui="qt")
+        icon_path = 'server/static/images/Logo.webp'
+        webview.start(debug=True, gui="qt", icon=icon_path)
     except Exception as e:
         print(f"Error while creating or starting Pywebview window: {e}")
     finally:
