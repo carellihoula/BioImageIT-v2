@@ -34,9 +34,18 @@ class CreateWorkflowRequest(BaseModel):
     path: str  
 
 class WorkflowManager:
-    def __init__(self):
+    def __init__(self, ws_url="ws://localhost:8000/ws"):
         BASE_WORKFLOWS_STORAGE.mkdir(parents=True, exist_ok=True)
         self._workflow_paths_registry = self._load_registry() 
+        self.ws_url = ws_url
+        self.selected_node = None
+    
+    def set_selected_node(self, node: dict):
+        print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
+        self.selected_node = node
+
+    def get_selected_node(self):
+        return self.selected_node
     
     def _load_registry(self) -> set[str]:
         if REGISTRY_FILE_PATH.exists():
@@ -356,15 +365,18 @@ class WorkflowManager:
         return abs_path_str
 
     
-    async def sendDataWebSocket(self, topic:str, data, selectedNode):
+    async def sendDataWebSocket(self, topic:str, data):
         """Convert all paths to thumbnail paths, add URL columns, and send data over WebSocket."""
         try:
             async with websockets.connect(self.ws_url) as websocket:
             
                 if isinstance(data, pandas.DataFrame):
                     df = data.copy()
-                    # node_name = self.pyFlowInstance.getCanvas().selectedNodes()[0].name
-                    node_name = selectedNode.name
+                    if not self.selected_node:
+                        print("No selected node to send with WebSocket data.")
+                        return
+
+                    node_name = self.selected_node["data"]["tool"]["name"]
 
                     for column in df.columns:
                         df[column+'_thumbnail'] = df[column].map(lambda x: self.convertAbsolutePathToUrl(ThumbnailGenerator.get().getThumbnailPath(x)))

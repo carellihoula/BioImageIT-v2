@@ -1,10 +1,13 @@
+import asyncio
 import json
 import os
+import threading
 import webview
 import base64 
 from pathlib import Path
 from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
+import pandas as pd
    
 
 class Api:
@@ -174,3 +177,31 @@ class Api:
         toolsList = self.workflow_manager.getToolsByWorkflow(workflow_path)
 
         return toolsList
+    
+    def node_selected(self, node):
+        """Appelée depuis le front React Flow quand un nœud est sélectionné"""
+        self.workflow_manager.set_selected_node(node)
+        self.workflow_manager.createSymbolicLink("/home/utilisateur/Desktop/new")
+        df = pd.DataFrame({
+            "image_path": [
+           
+                "/home/utilisateur/Desktop/new/Data/d.png",
+                "/home/utilisateur/Desktop/new/Data/g.png",
+                "/home/utilisateur/Desktop/new/Data/b.png",
+                "/home/utilisateur/Desktop/new/Data/f.png",
+                "/home/utilisateur/Desktop/new/Data/e.png",
+                "/home/utilisateur/Desktop/new/Data/a.png",
+                "/home/utilisateur/Desktop/new/Data/c.png",
+
+            ]
+        })
+        def send_ws():
+            asyncio.run(self.workflow_manager.sendDataWebSocket("table_data", df))
+
+        threading.Thread(target=send_ws, daemon=True).start()
+        # self.workflow_manager.sendDataWebSocket("table_data", df)
+        return {"status": "ok", "received": node}
+
+    def get_selected_node(self):
+        """Permet au front ou au debug de récupérer le nœud courant"""
+        return self.workflow_manager.get_selected_node()
