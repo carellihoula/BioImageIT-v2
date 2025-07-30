@@ -8,6 +8,7 @@ from pathlib import Path
 from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
 import pandas as pd
+from event_loop import main_loop
    
 
 class Api:
@@ -179,29 +180,36 @@ class Api:
         return toolsList
     
     def node_selected(self, node):
-        """Appelée depuis le front React Flow quand un nœud est sélectionné"""
+        """Called from the React Flow frontEnd when a node is selected"""
         self.workflow_manager.set_selected_node(node)
-        self.workflow_manager.createSymbolicLink("/home/utilisateur/Desktop/new")
+        self.workflow_manager.createSymbolicLink("/home/carellihoula/Musique/lihoula")
         df = pd.DataFrame({
             "image_path": [
-           
-                "/home/utilisateur/Desktop/new/Data/d.png",
-                "/home/utilisateur/Desktop/new/Data/g.png",
-                "/home/utilisateur/Desktop/new/Data/b.png",
-                "/home/utilisateur/Desktop/new/Data/f.png",
-                "/home/utilisateur/Desktop/new/Data/e.png",
-                "/home/utilisateur/Desktop/new/Data/a.png",
-                "/home/utilisateur/Desktop/new/Data/c.png",
+                "/home/carellihoula/images/a.jpg",
+                "/home/carellihoula/images/b.jpg",
+                "/home/carellihoula/images/c.jpg",
+                "/home/carellihoula/images/d.jpeg",
+                "/home/carellihoula/images/e.jpeg",
+                "/home/carellihoula/images/f.jpeg",
+                "/home/carellihoula/images/g.jpeg",
+                "/home/carellihoula/images/h.jpg",
 
             ]
         })
-        def send_ws():
-            asyncio.run(self.workflow_manager.sendDataWebSocket("table_data", df))
+        # loop = asyncio.get_event_loop()
 
-        threading.Thread(target=send_ws, daemon=True).start()
+        # lance sendDataWebSocket dans la boucle principale
+        asyncio.run_coroutine_threadsafe(
+            self.workflow_manager.sendDataWebSocket("table_data", df),
+            main_loop
+        )
+        # def send_ws():
+        #     asyncio.run(self.workflow_manager.sendDataWebSocket("table_data", df))
+
+        # threading.Thread(target=send_ws, daemon=True).start()
         # self.workflow_manager.sendDataWebSocket("table_data", df)
         return {"status": "ok", "received": node}
 
     def get_selected_node(self):
-        """Permet au front ou au debug de récupérer le nœud courant"""
+        """Allows the front end or debugger to retrieve the current node."""
         return self.workflow_manager.get_selected_node()

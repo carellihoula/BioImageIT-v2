@@ -7,6 +7,7 @@ import threading
 # from PyFlow.invoke_in_main import inmain, inthread
 from blinker import Signal
 from wetlands.environment_manager import EnvironmentManager
+from wetlands.external_environment import ExternalEnvironment
 # Warning: we cannot import generate_thumbnails.generateThumbnails directly here, otherwise the multiprocessing will initialize the entire BioImageIT app for each parallel process!
 # from PyFlow.ThumbnailManagement.generate_thumbnails import generateThumbnails
 import sys
@@ -33,9 +34,13 @@ class ThumbnailGenerator:
 
 	def __init__(self) -> None:
 		self.imageToThumbnail: dict[str, PathInfo] = {}
-		self.environment = self.myEnv.launch('bioimageit')
-		if self.environment.process is not None:
-			threading.Thread(self.logOutput, self.environment.process, daemon=True).start()
+		self.environment = self.myEnv.create("bioimageit", forceExternal=True)
+
+		if isinstance(self.environment, ExternalEnvironment):
+			self.environment.launch()
+			if self.environment.process is not None:
+				threading.Thread(target=self.logOutput, args=(self.environment.process,), daemon=True).start()
+
 		threading.Thread(self._generateThumbnailsThread, daemon=True).start()
 
 	@classmethod

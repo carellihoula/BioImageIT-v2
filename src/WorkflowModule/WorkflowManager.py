@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import zipfile
 from PIL import Image
 import websockets
+import pandas as pd
 
 from src.ThumbnailManagement.ThumbnailGenerator import ThumbnailGenerator
 
@@ -41,7 +42,7 @@ class WorkflowManager:
         self.selected_node = None
     
     def set_selected_node(self, node: dict):
-        print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
+        # print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
         self.selected_node = node
 
     def get_selected_node(self):
@@ -368,8 +369,9 @@ class WorkflowManager:
     async def sendDataWebSocket(self, topic:str, data):
         """Convert all paths to thumbnail paths, add URL columns, and send data over WebSocket."""
         try:
+            print(data if not isinstance(data, pd.DataFrame) else data.head())
             async with websockets.connect(self.ws_url) as websocket:
-            
+                
                 if isinstance(data, pandas.DataFrame):
                     df = data.copy()
                     if not self.selected_node:
