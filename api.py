@@ -179,12 +179,12 @@ class Api:
 
         return toolsList
     
-    def node_selected(self, node):
+    def node_selected(self, node, workflow_path: str = None):
         """Called from the React Flow frontEnd when a node is selected"""
         self.workflow_manager.set_selected_node(node)
-        self.workflow_manager.createSymbolicLink("/home/carellihoula/Musique/lihoula")
+        self.workflow_manager.createSymbolicLink(workflow_path)
         df = pd.DataFrame({
-            "image_path": [
+            "path": [
                 "/home/carellihoula/images/a.jpg",
                 "/home/carellihoula/images/b.jpg",
                 "/home/carellihoula/images/c.jpg",
@@ -196,18 +196,10 @@ class Api:
 
             ]
         })
-        # loop = asyncio.get_event_loop()
 
-        # lance sendDataWebSocket dans la boucle principale
-        asyncio.run_coroutine_threadsafe(
-            self.workflow_manager.sendDataWebSocket("table_data", df),
-            main_loop
-        )
-        # def send_ws():
-        #     asyncio.run(self.workflow_manager.sendDataWebSocket("table_data", df))
-
-        # threading.Thread(target=send_ws, daemon=True).start()
-        # self.workflow_manager.sendDataWebSocket("table_data", df)
+        # launches sendDataWebSocket in the main loop
+        self.workflow_manager.sendDataWebSocket(df, workflow_path)
+        
         return {"status": "ok", "received": node}
 
     def get_selected_node(self):

@@ -30,18 +30,18 @@ class ThumbnailGenerator:
 	instance = None
 	finished = Signal(object)
 	queue = queue.Queue()
-	myEnv = EnvironmentManager("micromamba/", False)
+	myEnv = EnvironmentManager("pixi/")
 
 	def __init__(self) -> None:
 		self.imageToThumbnail: dict[str, PathInfo] = {}
-		self.environment = self.myEnv.create("bioimageit", forceExternal=True)
+		self.environment = self.myEnv.create("bioimageit")
 
 		if isinstance(self.environment, ExternalEnvironment):
 			self.environment.launch()
 			if self.environment.process is not None:
 				threading.Thread(target=self.logOutput, args=(self.environment.process,), daemon=True).start()
 
-		threading.Thread(self._generateThumbnailsThread, daemon=True).start()
+		threading.Thread(target=self._generateThumbnailsThread, daemon=True).start()
 
 	@classmethod
 	def logOutput(cls, process):

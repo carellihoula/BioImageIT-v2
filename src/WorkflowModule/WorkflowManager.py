@@ -42,7 +42,7 @@ class WorkflowManager:
         self.selected_node = None
     
     def set_selected_node(self, node: dict):
-        # print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
+        print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
         self.selected_node = node
 
     def get_selected_node(self):
@@ -365,49 +365,41 @@ class WorkflowManager:
             return f"http://localhost:8000/images/{workflow_name}/{relative_path}"
         return abs_path_str
 
-    
-    async def sendDataWebSocket(self, topic:str, data):
+    def sendDataWebSocket(self, data, workflow_path: str = None):
         """Convert all paths to thumbnail paths, add URL columns, and send data over WebSocket."""
         try:
-            print(data if not isinstance(data, pd.DataFrame) else data.head())
-            async with websockets.connect(self.ws_url) as websocket:
-                
+                thumbnail_gen = ThumbnailGenerator.get()
+                print(f"DEBUG - ThumbnailGenerator workflow path: {getattr(thumbnail_gen, 'workflowPath', 'NOT SET')}")
+                print(f"DEBUG - ImageToThumbnail dict size: {len(thumbnail_gen.imageToThumbnail)}")
                 if isinstance(data, pandas.DataFrame):
                     df = data.copy()
                     if not self.selected_node:
                         print("No selected node to send with WebSocket data.")
-                        return
-
+                        return {"status": "error", "reason": "no_selected_node"}
+                    def test(x):
+                        return thumbnail_gen.convertAbsolutePathToUrl(x, workflow_path)
                     node_name = self.selected_node["data"]["tool"]["name"]
-
+                    print(f'workflow_path: {workflow_path}')
                     for column in df.columns:
-                        df[column+'_thumbnail'] = df[column].map(lambda x: self.convertAbsolutePathToUrl(ThumbnailGenerator.get().getThumbnailPath(x)))
+                        df[column+'_thumbnail'] = df[column].map(
+                            lambda x: self.convertAbsolutePathToUrl(
+                                ThumbnailGenerator.get().getThumbnailPath(x),
+                                workflow_path
+                            ) if x is not None else "Rien cano"
+                        )
+
+                    message_payload = {
+                        "node": node_name,
+                        "results": df.to_dict(orient="records")
+                    }
+                    print("✅ Data prepared for frontend:", message_payload)
+                    return {"status": "ok", "payload": message_payload}
+            
                     
-                    # Permission request: the server will send a notification as soon as there is at least one subscriber.
-                    await websocket.send(json.dumps({
-                        "action": "wait_for_permission",
-                        "topic": topic,
-                    }))
-                    # wait for the response
-                    permission_response = await websocket.recv()
-                    permission_data = json.loads(permission_response)
-
-                    if permission_data.get("permission", False):
-                        # Prepare the data to be sent
-                        message_payload = {
-                            "node": node_name,
-                            "results": df.to_dict(orient="records")
-                        }
-                        message = {
-                            "topic": "table_data",
-                            "action": "publish",
-                            "message": message_payload
-                        }
-                        await websocket.send(json.dumps(message, default=str))
-                    else:
-                        print("Permission not granted to publish on this topic.")
+                    
         except Exception as e:
-            print(f"Client WebSocket status: {e}")
+           print(f"❌ Error in send_table_data: {e}")
+           return {"status": "error", "reason": str(e)}
     
-
+    
 workflowManager = WorkflowManager() 

@@ -11,6 +11,8 @@ from server.main import app as fastapi_app
 from src.Packages.Tools.CodeServerTool import CodeServerTool
 from server.websocket_manager import WebSocketManager
 from logging_config import configure_logging
+import event_loop
+
 
 
 
