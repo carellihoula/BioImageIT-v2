@@ -8,7 +8,7 @@ from pathlib import Path
 from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
 import pandas as pd
-from event_loop import main_loop
+from src.ThumbnailManagement.ThumbnailGenerator import ThumbnailGenerator
    
 
 class Api:
@@ -197,6 +197,10 @@ class Api:
             ]
         })
 
+        tg = ThumbnailGenerator.get()
+        tg.setWorkflowPathAndLoadImageToThumbnail(workflow_path)
+        tg.generateThumbnails(node["data"]["tool"]["name"], df)
+        # ThumbnailGenerator.get().generateThumbnails(node["data"]["tool"]["name"], df)
         # launches sendDataWebSocket in the main loop
         self.workflow_manager.sendDataWebSocket(df, workflow_path)
         

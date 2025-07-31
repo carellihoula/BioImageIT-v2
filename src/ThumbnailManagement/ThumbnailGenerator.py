@@ -34,6 +34,12 @@ class ThumbnailGenerator:
 
 	def __init__(self) -> None:
 		self.imageToThumbnail: dict[str, PathInfo] = {}
+		
+		# ✅ ensure src/ is importable
+		src_path = Path(__file__).resolve().parents[1] 
+		if str(src_path) not in sys.path:
+			sys.path.insert(0, str(src_path))
+
 		self.environment = self.myEnv.create("bioimageit")
 
 		if isinstance(self.environment, ExternalEnvironment):
@@ -95,7 +101,7 @@ class ThumbnailGenerator:
 	def _generateThumbnailsThread(self):
 		while True:
 			taskData = self.queue.get()
-			results = self.environment.execute('PyFlow.ThumbnailManagement.generate_thumbnails', 'generateThumbnails', [taskData])
+			results = self.environment.execute('ThumbnailManagement.generate_thumbnails', 'generateThumbnails', [taskData])
 			if results is None: continue
 			self._finishGenerateThumbnails(results)
 			self.queue.task_done()
