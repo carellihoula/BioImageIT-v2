@@ -18,7 +18,7 @@ dependencies = [
     "websockets",
     "wetlands>=0.2.0",
     "blinker>=1.8.2,<2",
-     
+    "h5py"
 ]
 name = "BioImageIT"
 requires-python = ">=3.9"

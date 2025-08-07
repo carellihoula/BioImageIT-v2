@@ -47,7 +47,7 @@ class SocketHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         try:
-            if record.levelno < logging.INFO:
+            if record.levelno < logging.INFO or not record.getMessage():
                 return
             # msg = self.format(record)
             log_entry = {

@@ -7,9 +7,8 @@ import threading
 # from PyFlow.invoke_in_main import inmain, inthread
 from blinker import Signal
 from wetlands.environment_manager import EnvironmentManager
-from wetlands.external_environment import ExternalEnvironment
-# Warning: we cannot import generate_thumbnails.generateThumbnails directly here, otherwise the multiprocessing will initialize the entire BioImageIT app for each parallel process!
-# from PyFlow.ThumbnailManagement.generate_thumbnails import generateThumbnails
+# from wetlands.external_environment import ExternalEnvironment
+
 import sys
 
 if sys.version_info < (3, 11):
@@ -35,17 +34,31 @@ class ThumbnailGenerator:
 	def __init__(self) -> None:
 		self.imageToThumbnail: dict[str, PathInfo] = {}
 		
-		# ✅ ensure src/ is importable
-		src_path = Path(__file__).resolve().parents[1] 
-		if str(src_path) not in sys.path:
-			sys.path.insert(0, str(src_path))
-
-		self.environment = self.myEnv.create("bioimageit")
-
-		if isinstance(self.environment, ExternalEnvironment):
-			self.environment.launch()
-			if self.environment.process is not None:
-				threading.Thread(target=self.logOutput, args=(self.environment.process,), daemon=True).start()
+		dependencies = {
+			"python": "3.12",
+			"conda": [
+				"numpy",
+				"pillow",  # PIL
+				"h5py"
+			]
+		}
+		self.environment = self.myEnv.create("bioimageit", forceExternal=True)
+		# Install dependencies manually
+		try:
+			print("[DEBUG] Installing dependencies in bioimageit environment...")
+			dependencies = {
+				"conda": ["numpy", "pillow", "h5py"]  # pillow (PIL)
+			}
+			install_output = self.myEnv.install("bioimageit", dependencies)
+		except Exception as e:
+			print(f"[DEBUG] Failed to install dependencies: {e}")
+			self.environment = self.myEnv.mainEnvironment
+			threading.Thread(target=self._generateThumbnailsThread, daemon=True).start()
+			return
+		
+		self.environment.launch()
+		if self.environment.process is not None:
+			threading.Thread(target=self.logOutput, args=(self.environment.process,), daemon=True).start()
 
 		threading.Thread(target=self._generateThumbnailsThread, daemon=True).start()
 
@@ -101,7 +114,7 @@ class ThumbnailGenerator:
 	def _generateThumbnailsThread(self):
 		while True:
 			taskData = self.queue.get()
-			results = self.environment.execute('ThumbnailManagement.generate_thumbnails', 'generateThumbnails', [taskData])
+			results = self.environment.execute('src.ThumbnailManagement.generate_thumbnails', 'generateThumbnails', (taskData,))
 			if results is None: continue
 			self._finishGenerateThumbnails(results)
 			self.queue.task_done()
