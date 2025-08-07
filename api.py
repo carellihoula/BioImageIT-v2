@@ -5,10 +5,14 @@ import threading
 import webview
 import base64 
 from pathlib import Path
+from src.Core.utils import reactflow_to_dag_nodes
+from src.Core.tool_manager import ToolManager
 from src.Packages.Tools.CodeServerTool import CodeServerTool
 from src.WorkflowModule.WorkflowManager import WorkflowManager
 import pandas as pd
 from src.ThumbnailManagement.ThumbnailGenerator import ThumbnailGenerator
+from wetlands.environment_manager import EnvironmentManager
+from src.Core.dag import DAG
    
 
 class Api:
@@ -19,6 +23,8 @@ class Api:
     def __init__(self):
         self.workflow_manager = WorkflowManager()
         self.codeserver = CodeServerTool()
+        self.environment_manager = EnvironmentManager()
+        self.tool_manager = ToolManager()
 
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
@@ -209,3 +215,18 @@ class Api:
     def get_selected_node(self):
         """Allows the front end or debugger to retrieve the current node."""
         return self.workflow_manager.get_selected_node()
+    
+    def run_workflow(self, graph_json_str):
+        graph_json = json.loads(graph_json_str)
+        dag_nodes = reactflow_to_dag_nodes(graph_json)
+        dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools)
+        results = dag.process("dataframe")
+        print("Workflow execution completed. Results:")
+        for node, result in results.items():
+            print(f"Node: {node}, Result: {result}")
+
+        # Convert results to a JSON serializable format
+        for node, result in results.items():
+            if isinstance(result, pd.DataFrame):
+                results[node] = result.to_dict(orient='records')
+        return json.dumps(results)
