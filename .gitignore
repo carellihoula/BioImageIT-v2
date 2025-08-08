@@ -52,4 +52,7 @@ micromamba_root/
 *.ini
 
 server/static/images
-src/WorkflowModule/server/static/images/SQS/Thumbnails
+
+src/Core/tools/ConvertImage/data/bftools
+#temp
+src/Core/tools

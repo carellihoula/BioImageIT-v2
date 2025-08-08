@@ -4,7 +4,7 @@ from pathlib import Path
 # import json
 
 def get_root_path():
-    return Path(__file__).parent.parent
+    return Path(__file__).parents[2].resolve()
 
 APP_NAME = "BioImageIT"
 

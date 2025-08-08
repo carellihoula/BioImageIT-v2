@@ -156,6 +156,22 @@ class Api:
 
         except Exception as e:
             return {"error": f"Erreur interne du serveur : {str(e)}"}
+    
+    def getImagesFolderPath(self):
+        active_window = webview.active_window()
+        if not active_window:
+            return {"error": "No active window."}
+
+        try:
+            folder_path_tuple = active_window.create_file_dialog(webview.FOLDER_DIALOG)
+            if not folder_path_tuple or not folder_path_tuple[0]:
+                return {"error": "File selection cancelled."}
+            selected_folder_path_str = folder_path_tuple[0]
+
+            return {"success": True,"path":selected_folder_path_str}
+
+        except Exception as e:
+            return {"error": f"Erreur interne du serveur : {str(e)}"}
         
     def saveWorkflow(self, path: str, graph: dict):
         try:
@@ -184,7 +200,7 @@ class Api:
         toolsList = self.workflow_manager.getToolsByWorkflow(workflow_path)
 
         return toolsList
-    
+    # temp
     def node_selected(self, node, workflow_path: str = None):
         """Called from the React Flow frontEnd when a node is selected"""
         self.workflow_manager.set_selected_node(node)
