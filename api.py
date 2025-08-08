@@ -166,7 +166,7 @@ class Api:
             folder_path_tuple = active_window.create_file_dialog(webview.FOLDER_DIALOG)
             if not folder_path_tuple or not folder_path_tuple[0]:
                 return {"error": "File selection cancelled."}
-            selected_folder_path_str = folder_path_tuple[0]
+            selected_folder_path_str = str(folder_path_tuple[0])
 
             return {"success": True,"path":selected_folder_path_str}
 
@@ -235,6 +235,7 @@ class Api:
     def run_workflow(self, graph_json_str):
         graph_json = json.loads(graph_json_str)
         dag_nodes = reactflow_to_dag_nodes(graph_json)
+        # print(f" lihoula: {dag_nodes}")
         dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools)
         results = dag.process("dataframe")
         print("Workflow execution completed. Results:")
@@ -244,5 +245,7 @@ class Api:
         # Convert results to a JSON serializable format
         for node, result in results.items():
             if isinstance(result, pd.DataFrame):
-                results[node] = result.to_dict(orient='records')
+                # results[node] = result.to_dict(orient='records')
+                results[node] = result.map(lambda x: str(x) if isinstance(x, Path) else x).to_dict(orient='records')
+
         return json.dumps(results)
