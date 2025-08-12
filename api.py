@@ -237,7 +237,7 @@ class Api:
         dag_nodes = reactflow_to_dag_nodes(graph_json)
         # print(f" lihoula: {dag_nodes}")
         dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools)
-        results = dag.process("dataframe")
+        results = dag.process("data")
         print("Workflow execution completed. Results:")
         for node, result in results.items():
             print(f"Node: {node}, Result: {result}")
