@@ -25,7 +25,7 @@ SERVER_PORT = 8000
 #APP_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 APP_URL = "http://localhost:5173"  # For testing on localhost
 
-instance_api = Api()
+instance_api = Api(None)
 code_server = CodeServerTool()
 
 def cleanup(signum=None, frame=None):
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     print(f"Launching Pywebview window pointing to {APP_URL}")
     try:
-        webview.create_window(
+        window = webview.create_window(
             'BioImageIT Minimal',
             APP_URL, #'server/static/react_build/index.html',
             width=1900,
@@ -73,6 +73,7 @@ if __name__ == '__main__':
             resizable=True,
             js_api=instance_api
         )
+        instance_api.window = window
         #gui='gtk'
         icon_path = 'server/static/images/Logo.webp'
         webview.start(debug=True, gui="qt", icon=icon_path)

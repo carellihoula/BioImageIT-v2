@@ -39,14 +39,44 @@ def reactflow_to_dag_nodes(graph_json):
     for node in nodes:
         node_id = node["id"]
         tool = node["data"]["tool"]
+        name = tool["name"]
+        isFileList = name == "List Files"
         
         tool_key = tool["path"].split('/')[-1].replace('.py', '')
         parameters = {}
         for inp in tool.get("inputs", []):
-            if "value" in inp:
-                parameters[inp["name"]] = inp["value"]
+            param_name = inp["name"]
+            # if "value" in inp:
+            #     parameters[inp["name"]] = inp["value"]
+            # else:
+            #     parameters[inp["name"]] = inp.get("default", None)
+            if inp.get("autoColumn", False) and not isFileList:
+                # Find the source that feeds this parameter
+                source_nodes = node_inputs.get(node_id, [])
+
+                # Here we assume that the first source is the one that provides the column.
+                if source_nodes:
+                    source_node = source_nodes[0]
+                    # By default, the column is “path” unless specified.
+                    col_name = inp.get("columnName", "path")
+                    parameters[param_name] = {
+                        "type": "column",
+                        "source_node": source_node,
+                        "columnName": col_name,
+                    }
+                else:
+                    # No source connected
+                    parameters[param_name] = {
+                        "type": "constant",
+                        "value": inp.get("default", None),
+                    }
             else:
-                parameters[inp["name"]] = inp.get("default", None)
+                # Constant value
+                if "value" in inp:
+                    parameters[param_name] = inp["value"]
+                else:
+                    parameters[param_name] = inp.get("default", None)
+
         dag_nodes[node_id] = {
             "task": tool_key,
             "inputs": node_inputs[node_id],

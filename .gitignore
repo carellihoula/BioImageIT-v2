@@ -56,3 +56,6 @@ server/static/images
 src/Core/tools/ConvertImage/data/bftools
 #temp
 src/Core/tools
+Workflow/
+test.py
+

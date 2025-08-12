@@ -20,11 +20,12 @@ class Api:
     This module provides an API interface for the application, handling file operations,
     code server management, and workflow management through Python-JavaScript bridge.
     """
-    def __init__(self):
+    def __init__(self,window=None):
         self.workflow_manager = WorkflowManager()
         self.codeserver = CodeServerTool()
         self.environment_manager = EnvironmentManager()
         self.tool_manager = ToolManager()
+        self.window = window
 
     def launchCodeServer(self):
         self.codeserver.init_and_launch_code_server()
@@ -235,12 +236,12 @@ class Api:
     def run_workflow(self, graph_json_str):
         graph_json = json.loads(graph_json_str)
         dag_nodes = reactflow_to_dag_nodes(graph_json)
-        # print(f" lihoula: {dag_nodes}")
+        # print(f" Lihoula ==> {dag_nodes}")
         dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools)
         results = dag.process("data")
-        print("Workflow execution completed. Results:")
-        for node, result in results.items():
-            print(f"Node: {node}, Result: {result}")
+        # print("Workflow execution completed. Results:")
+        # for node, result in results.items():
+        #     print(f"Node: {node}, Result: {result}")
 
         # Convert results to a JSON serializable format
         for node, result in results.items():
@@ -249,3 +250,5 @@ class Api:
                 results[node] = result.map(lambda x: str(x) if isinstance(x, Path) else x).to_dict(orient='records')
 
         return json.dumps(results)
+
+   
