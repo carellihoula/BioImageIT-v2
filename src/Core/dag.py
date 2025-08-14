@@ -6,16 +6,16 @@ from src.Core.node import Node
 
 class DAG:
 
-    def __init__(self, environment_manager: EnvironmentManager, nodes: dict, tools: dict) -> None:
+    def __init__(self, environment_manager: EnvironmentManager, nodes: dict, tools: dict, workflowPath: Path) -> None:
         self._environment_manager = environment_manager
-        self.G = self.create(nodes, tools)
+        self.G = self.create(nodes, tools, workflowPath)
 
-    def create(self, nodes: dict, tools: dict)-> nx.DiGraph:
+    def create(self, nodes: dict, tools: dict, workflowPath: Path) -> nx.DiGraph:
         # Build graph with node metadata
         G = nx.DiGraph()
         for node_name, node_data in nodes.items():
             name = node_data["task"]
-            node = Node(self._environment_manager, tools[name]["path"], tools[name]["module"].Tool(), tools[name]["module_import_path"], Path("Workflow/"), False)
+            node = Node(self._environment_manager, tools[name]["path"], tools[name]["module"].Tool(), tools[name]["module_import_path"], workflowPath, False)
             node_data['node'] = node
             G.add_node(node_name, **node_data)
             for input_node in node_data["inputs"]:

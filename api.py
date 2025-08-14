@@ -233,11 +233,11 @@ class Api:
         """Allows the front end or debugger to retrieve the current node."""
         return self.workflow_manager.get_selected_node()
     
-    def run_workflow(self, graph_json_str):
+    def run_workflow(self, graph_json_str, workflowPath):
         graph_json = json.loads(graph_json_str)
         dag_nodes = reactflow_to_dag_nodes(graph_json)
         # print(f" Lihoula ==> {dag_nodes}")
-        dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools)
+        dag = DAG(self.environment_manager, dag_nodes, self.tool_manager.tools, Path(workflowPath))
         results = dag.process("data")
         # print("Workflow execution completed. Results:")
         # for node, result in results.items():
