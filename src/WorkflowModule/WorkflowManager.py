@@ -42,7 +42,7 @@ class WorkflowManager:
         self.selected_node = None
     
     def set_selected_node(self, node: dict):
-        print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
+        # print(f"[WorkflowManager] selected Node : {node}") #["data"]["tool"]["name"]
         self.selected_node = node
 
     def get_selected_node(self):
@@ -376,8 +376,7 @@ class WorkflowManager:
                     if not self.selected_node:
                         print("No selected node to send with WebSocket data.")
                         return {"status": "error", "reason": "no_selected_node"}
-                    def test(x):
-                        return thumbnail_gen.convertAbsolutePathToUrl(x, workflow_path)
+                    
                     node_name = self.selected_node["data"]["tool"]["name"]
                     print(f'workflow_path: {workflow_path}')
                     for column in df.columns:

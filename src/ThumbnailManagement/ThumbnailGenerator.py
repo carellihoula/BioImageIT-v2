@@ -33,7 +33,7 @@ class ThumbnailGenerator:
 
 	def __init__(self) -> None:
 		self.imageToThumbnail: dict[str, PathInfo] = {}
-		
+		self.workflowPath = None
 		dependencies = {
 			"python": "3.12",
 			"conda": [

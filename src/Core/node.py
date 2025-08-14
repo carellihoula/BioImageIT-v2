@@ -9,6 +9,7 @@ from wetlands.external_environment import ExternalEnvironment
 from wetlands.environment_manager import EnvironmentManager
 import pandas
 from send2trash import send2trash
+from src.ThumbnailManagement.ThumbnailGenerator import ThumbnailGenerator
 
 PARAMETERS_PATH = 'parameters.json'
 OUTPUT_DATAFRAME_PATH = 'output_data_frame.csv'
@@ -26,6 +27,8 @@ class Node:
         self.workflowPath = workflowPath.resolve()
         self.workflowTool = workflowTool
         self.initializeParameters()
+        thumbnail_generator = ThumbnailGenerator.get()
+        thumbnail_generator.setWorkflowPathAndLoadImageToThumbnail(str(self.workflowPath))
 
 # Parameters
     def initializeInput(self, input):
@@ -265,6 +268,8 @@ class Node:
 
     def processDataFrame(self, dataFrames: list[pandas.DataFrame], parameters: dict[str, Any]):
         print(f'------------compute: {self.name}')
+        thumbnail_generator = ThumbnailGenerator.get()
+        thumbnail_generator.setWorkflowPathAndLoadImageToThumbnail(str(self.workflowPath))
         for key, value in parameters.items():
             if not isinstance(value, dict) or "type" not in value:
                 value = dict(type="value", value=value)
@@ -285,6 +290,8 @@ class Node:
 # Process data
 
     def processData(self, inputDataFrames:list[pandas.DataFrame], parameters: dict[str, Any]):
+        thumbnail_generator = ThumbnailGenerator.get()
+        thumbnail_generator.setWorkflowPathAndLoadImageToThumbnail(str(self.workflowPath))
         processedDataFrame = self.processDataFrame(inputDataFrames, parameters)
         additionalInstallCommands = getattr(self.tool, 'additionalInstallCommands', [])
         additionalActivateCommands = getattr(self.tool, 'additionalActivateCommands', [])
@@ -373,13 +380,13 @@ class Node:
         self.executed = executed
     
     def regenerateThumbnails(self, dataFrame):
-        # self.deleteThumbnails()
-        # ThumbnailGenerator.get().generateThumbnails(self.name, dataFrame)
-        pass
+        self.deleteThumbnails()
+        ThumbnailGenerator.get().generateThumbnails(self.name, dataFrame)
+        # pass
 
     def deleteThumbnails(self):
-        # ThumbnailGenerator.get().deleteThumbnails(self.name)
-        pass
+        ThumbnailGenerator.get().deleteThumbnails(self.name)
+        # pass
     
     def deleteFiles(self):
         self.deleteThumbnails()

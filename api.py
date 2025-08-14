@@ -202,28 +202,24 @@ class Api:
 
         return toolsList
     # temp
-    def node_selected(self, node, workflow_path: str = None):
+    def node_selected(self, node, workflow_path: str = None, df: pd.DataFrame = None):
         """Called from the React Flow frontEnd when a node is selected"""
+
+        if workflow_path is None:
+            print("No workflow path provided, cannot proceed with node selection.")
+            return {"status": "error", "received": "no_workflow_path"}
         self.workflow_manager.set_selected_node(node)
         self.workflow_manager.createSymbolicLink(workflow_path)
-        df = pd.DataFrame({
-            "path": [
-                "/home/carellihoula/images/a.jpg",
-                "/home/carellihoula/images/b.jpg",
-                "/home/carellihoula/images/c.jpg",
-                "/home/carellihoula/images/d.jpeg",
-                "/home/carellihoula/images/e.jpeg",
-                "/home/carellihoula/images/f.jpeg",
-                "/home/carellihoula/images/g.jpeg",
-                "/home/carellihoula/images/h.jpg",
 
-            ]
-        })
-
+        images_dir = Path(workflow_path) / "Thumbnails"
+        valid_ext = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".h5"}
+        image_paths = [str(p) for p in images_dir.iterdir() if p.suffix.lower() in valid_ext]
+        df = pd.DataFrame({"path": image_paths})
+        # Check if workflow_path is provided before proceeding
+        # if workflow_path is not None:
         tg = ThumbnailGenerator.get()
         tg.setWorkflowPathAndLoadImageToThumbnail(workflow_path)
         tg.generateThumbnails(node["data"]["tool"]["name"], df)
-        # ThumbnailGenerator.get().generateThumbnails(node["data"]["tool"]["name"], df)
         # launches sendDataWebSocket in the main loop
         self.workflow_manager.sendDataWebSocket(df, workflow_path)
         
