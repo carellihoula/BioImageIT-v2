@@ -202,7 +202,7 @@ class Api:
 
         return toolsList
     # temp
-    def node_selected(self, node, workflow_path: str = None, df: pd.DataFrame = None):
+    def node_selected(self, node, workflow_path: str = None):
         """Called from the React Flow frontEnd when a node is selected"""
 
         if workflow_path is None:
